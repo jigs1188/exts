@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MetaPrompt Optimizer Test</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      color: white;
+      text-align: center;
+      margin-bottom: 10px;
+      font-size: 32px;
+    }
+
+    .subtitle {
+      color: rgba(255, 255, 255, 0.9);
+      text-align: center;
+      margin-bottom: 40px;
+      font-size: 16px;
+    }
+
+    .test-area {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .input-section {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #2d3748;
+      font-size: 14px;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      resize: vertical;
+      transition: border-color 0.2s;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    #original {
+      min-height: 100px;
+    }
+
+    #optimized {
+      min-height: 300px;
+      background: #f7fafc;
+    }
+
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 32px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      width: 100%;
+      margin: 20px 0;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .stat-card {
+      background: #f7fafc;
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #718096;
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #667eea;
+    }
+
+    .intent-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-top: 10px;
+    }
+
+    .examples {
+      margin-top: 30px;
+      padding-top: 30px;
+      border-top: 2px solid #e2e8f0;
+    }
+
+    .examples h3 {
+      color: #2d3748;
+      margin-bottom: 15px;
+    }
+
+    .example-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .example-btn {
+      background: #f7fafc;
+      border: 1px solid #e2e8f0;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: #4a5568;
+    }
+
+    .example-btn:hover {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>✨ MetaPrompt Optimizer Test</h1>
+    <p class="subtitle">Test the prompt optimization engine in real-time</p>
+
+    <div class="test-area">
+      <div class="input-section">
+        <label for="original">Original Prompt:</label>
+        <textarea
+          id="original"
+          placeholder="Enter your prompt here... Try: 'write a function to sort an array' or 'explain quantum computing'">
+        </textarea>
+      </div>
+
+      <button onclick="optimizePrompt()">✨ Enhance Prompt</button>
+
+      <div class="input-section">
+        <label for="optimized">Optimized Prompt:</label>
+        <textarea id="optimized" readonly></textarea>
+      </div>
+
+      <div id="statsContainer"></div>
+
+      <div class="examples">
+        <h3>Quick Examples (click to try):</h3>
+        <div class="example-buttons">
+          <button class="example-btn" onclick="loadExample('write a function to sort an array')">Coding</button>
+          <button class="example-btn" onclick="loadExample('my code has a null pointer error')">Debugging</button>
+          <button class="example-btn" onclick="loadExample('explain how blockchain works')">Explanation</button>
+          <button class="example-btn" onclick="loadExample('write a blog post about AI')">Writing</button>
+          <button class="example-btn" onclick="loadExample('compare React vs Vue')">Analysis</button>
+          <button class="example-btn" onclick="loadExample('help me with my project')">General</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="content/optimizer.js"></script>
+  <script>
+    function optimizePrompt() {
+      const original = document.getElementById('original').value;
+
+      if (!original.trim()) {
+        alert('Please enter a prompt first!');
+        return;
+      }
+
+      const optimized = PromptOptimizer.optimize(original);
+      document.getElementById('optimized').value = optimized;
+
+      const stats = PromptOptimizer.getStats(original, optimized);
+      const intent = PromptOptimizer.detectIntent(original);
+
+      displayStats(stats, intent);
+    }
+
+    function displayStats(stats, intent) {
+      const container = document.getElementById('statsContainer');
+      container.innerHTML = `
+        <div class="stats">
+          <div class="stat-card">
+            <div class="stat-label">Original Length</div>
+            <div class="stat-value">${stats.original.length}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Optimized Length</div>
+            <div class="stat-value">${stats.optimized.length}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Words Added</div>
+            <div class="stat-value">+${stats.improvement.wordsAdded}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Detected Intent</div>
+            <div class="stat-value" style="font-size: 16px; text-transform: capitalize;">
+              ${intent}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function loadExample(text) {
+      document.getElementById('original').value = text;
+      optimizePrompt();
+    }
+
+    document.getElementById('original').addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        optimizePrompt();
+      }
+    });
+
+    document.getElementById('original').focus();
+  </script>
+</body>
+</html>

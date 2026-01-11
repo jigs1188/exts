@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "MetaPrompt – AI Prompt Engineer & Optimizer",
+  "version": "1.0.0",
+  "description": "Enhance your AI prompts for ChatGPT, Gemini, and Claude with advanced prompt engineering techniques",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://chat.openai.com/*",
+    "https://gemini.google.com/*",
+    "https://claude.ai/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chat.openai.com/*",
+        "https://gemini.google.com/*",
+        "https://claude.ai/*"
+      ],
+      "js": [
+        "utils/detectPlatform.js",
+        "content/optimizer.js",
+        "content/observer.js",
+        "content/content.js"
+      ],
+      "run_at": "document_end"
+    }
+  ],
+  "action": {
+    "default_popup": "ui/panel.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  }
+}

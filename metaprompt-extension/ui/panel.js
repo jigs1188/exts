@@ -1,9 +1,65 @@
-document.addEventListener('DOMContentLoaded', () => {
   loadStats();
   loadApiKey();
+  loadLicenseKey(); // New
   setupEventListeners();
   setupApiKeyListeners();
+  setupLicenseListeners(); // New
 });
+
+function loadLicenseKey() {
+  chrome.storage.sync.get(['licenseKey'], (result) => {
+    if (result.licenseKey) {
+      document.getElementById('licenseKey').value = result.licenseKey;
+      // Trigger a silent check to update UI status
+      chrome.runtime.sendMessage({ action: 'VALIDATE_LICENSE_NOW' }, (res) => {
+         updateLicenseUI(res);
+      });
+    }
+  });
+}
+
+function setupLicenseListeners() {
+  const btn = document.getElementById('activateLicense');
+  const input = document.getElementById('licenseKey');
+
+  if (btn) {
+    btn.addEventListener('click', () => {
+      const key = input.value.trim();
+      if (!key) return showLicenseStatus('Enter a key', 'error');
+
+      btn.textContent = 'Verifying...';
+      btn.disabled = true;
+
+      // 1. Save Key
+      chrome.storage.sync.set({ licenseKey: key }, () => {
+        // 2. Validate with Background
+        chrome.runtime.sendMessage({ action: 'VALIDATE_LICENSE_NOW' }, (response) => {
+           btn.disabled = false;
+           btn.textContent = 'Activate Device';
+           updateLicenseUI(response);
+        });
+      });
+    });
+  }
+}
+
+function updateLicenseUI(status) {
+    if (!status) return;
+    if (status.valid) {
+        showLicenseStatus('✅ Device Activated', 'success');
+        document.getElementById('licenseKey').style.borderColor = '#48bb78';
+        document.getElementById('activation-section').style.borderColor = '#48bb78';
+        document.getElementById('activation-section').style.background = '#f0fff4';
+    } else {
+        showLicenseStatus('❌ ' + (status.reason || 'Invalid'), 'error');
+    }
+}
+
+function showLicenseStatus(msg, type) {
+    const el = document.getElementById('licenseStatus');
+    el.textContent = msg;
+    el.style.color = type === 'error' ? '#e53e3e' : '#38a169';
+}
 
 function loadApiKey() {
   if (typeof chrome !== 'undefined' && chrome.storage) {

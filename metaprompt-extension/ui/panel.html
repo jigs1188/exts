@@ -29,6 +29,20 @@
         </ol>
       </section>
 
+      <section class="info-card" id="activation-section" style="border: 2px solid #f6ad55; background: #fffaf0;">
+        <h2>🔐 Activation</h2>
+        <p style="font-size: 13px; color: #4a5568; margin-bottom: 12px;">Enter your <strong>Private License Key</strong>
+          to activate this device.</p>
+        <div class="input-group" style="display: flex; gap: 8px; flex-direction: column;">
+          <input type="text" id="licenseKey" placeholder="Paste License Key (UUID)"
+            style="padding: 8px; border: 1px solid #f6ad55; border-radius: 6px; width: 100%; box-sizing: border-box; font-family: monospace;">
+          <button id="activateLicense"
+            style="background: #ed8936; color: white; border: none; padding: 8px; border-radius: 6px; cursor: pointer; font-weight: bold;">Activate
+            Device</button>
+          <p id="licenseStatus" style="font-size: 12px; margin-top: 4px; font-weight: bold;"></p>
+        </div>
+      </section>
+
       <section class="info-card">
         <h2>🔑 API Configuration</h2>
         <p style="font-size: 13px; color: #4a5568; margin-bottom: 12px;">Add your Gemini API Key to enable AI-powered

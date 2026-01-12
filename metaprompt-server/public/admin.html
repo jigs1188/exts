@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>MetaPrompt Admin</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+            background: #eee;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        button {
+            cursor: pointer;
+            padding: 8px 16px;
+            background: #333;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+
+        input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .link-box {
+            background: #f0f0f0;
+            padding: 10px;
+            font-family: monospace;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>Admin Control</h2>
+
+    <div class="card">
+        <h3>Generate Private Link</h3>
+        <input type="text" id="note" placeholder="Client Name / Note">
+
+        <label for="expiry" style="margin-left: 10px;">Expires:</label>
+        <select id="expiry" style="padding: 8px; border-radius: 4px;">
+            <option value="30">30 Mins</option>
+            <option value="60">1 Hour</option>
+            <option value="1440">24 Hours</option>
+            <option value="10080">1 Week</option>
+        </select>
+
+        <label for="limit" style="margin-left: 10px;">Max Devices:</label>
+        <input type="number" id="limit" value="1" min="1" max="100" style="width: 50px;">
+
+        <button onclick="generate()">Create Link</button>
+        <div style="margin-top: 10px; display: none;" id="resultArea">
+            <span id="newLink" class="link-box" style="display:inline-block;"></span>
+            <button onclick="copyToClipboard()" style="margin-left: 5px;">Copy 📋</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Active Licenses</h3>
+        <button onclick="loadLicenses()">Refresh</button>
+        <table id="licenseTable">
+            <thead>
+                <tr>
+                    <th>Client</th>
+                    <th>Key</th>
+                    <th>Status</th>
+                    <th>Modules</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <script>
+        const SECRET = 'admin123'; // Matches server.js
+
+        async function generate() {
+            const note = document.getElementById('note').value;
+            const expiryMinutes = document.getElementById('expiry').value;
+            const maxActivations = document.getElementById('limit').value;
+
+            const res = await fetch('/api/admin/generate-link', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ secret: SECRET, note, expiryMinutes, maxActivations })
+            });
+            const data = await res.json();
+            const box = document.getElementById('newLink');
+            const area = document.getElementById('resultArea');
+            area.style.display = 'block';
+            box.innerText = data.link || 'Error: ' + data.error;
+        }
+
+        function copyToClipboard() {
+            const text = document.getElementById('newLink').innerText;
+            navigator.clipboard.writeText(text);
+            alert('Copied!');
+        }
+
+        async function loadLicenses() {
+            const res = await fetch(`/api/admin/licenses?secret=${SECRET}`);
+            const data = await res.json();
+            const tbody = document.getElementById('licenseTable').querySelector('tbody'); // Correctly target tbody
+            tbody.innerHTML = '';
+
+            data.licenses.forEach(l => {
+                const tr = document.createElement('tr');
+                const isBanned = l.status === 'banned';
+
+                tr.innerHTML = `
+                    <td style="color: #a0aec0; font-size: 12px;">${l.original_session_token} 
+                        <br> <button onclick="extendSession('${l.original_session_token}')" style="font-size:10px; padding:2px 5px; cursor:pointer;">Extend 5m</button>
+                    </td>
+                    <td style="font-family: monospace; color: #63b3ed;">${l.license_key}<br>
+                        <span style="font-size:10px; color: #718096;">Devices: ${l.used_count}/${l.max_devices}</span>
+                    </td>
+                    <td>
+                        <span class="status ${l.status}">${l.status.toUpperCase()}</span>
+                    </td>
+                    <td>
+                        <button onclick="toggleBan('${l.license_key}', '${isBanned ? 'active' : 'banned'}')" 
+                            style="background: ${isBanned ? '#38a169' : '#e53e3e'}; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">
+                            ${isBanned ? 'Unban' : 'Ban'}
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function toggleBan(key, newStatus) {
+            if (!confirm(`Are you sure you want to ${newStatus.toUpperCase()} this user?`)) return;
+            await fetch('/api/admin/license-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ secret: SECRET, license_key: key, status: newStatus })
+            });
+            loadLicenses();
+        }
+
+        async function extendSession(token) {
+            if (!confirm(`Unlock link for 5 more minutes?`)) return;
+            await fetch('/api/admin/extend-session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ secret: SECRET, token })
+            });
+            alert('Link Extended! User can install now.');
+        }
+    </script>
+
+</body>
+
+</html>

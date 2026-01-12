@@ -53,6 +53,7 @@
   },
   "background": {
     "scripts": [
+      "utils/fingerprint.js",
       "background.js"
     ]
   }

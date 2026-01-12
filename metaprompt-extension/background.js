@@ -18,7 +18,82 @@ chrome.runtime.onConnect.addListener((port) => {
   }
 });
 
+// --- LICENSING SYSTEM ---
+let LICENSE_STATUS = { valid: false, reason: 'Checking...' };
+const SERVER_URL = 'http://localhost:3000/api/validate'; // TODO: Change for prod
+
+async function validateLicense() {
+  // 1. DEV MODE CHECK (Bypass for You)
+  if (chrome.management && chrome.management.getSelf) {
+      const self = await new Promise(r => chrome.management.getSelf(r));
+      if (self.installType === 'development') {
+          console.log('[MetaPrompt] DEV MODE DETECTED: Bypassing License Check 🔓');
+          LICENSE_STATUS = { valid: true, reason: 'Developer Override' };
+          return;
+      }
+  }
+
+  try {
+    const data = await chrome.storage.sync.get(['licenseKey']);
+    if (!data.licenseKey) {
+      LICENSE_STATUS = { valid: false, reason: 'License Key Missing' };
+      return;
+    }
+
+    // Generate Fingerprint (Available via utils/fingerprint.js)
+    if (typeof self.getDeviceFingerprint !== 'function') {
+        console.error('Fingerprint util not loaded');
+        return;
+    }
+    const fp = await self.getDeviceFingerprint();
+
+    // Call Server
+    const response = await fetch(SERVER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ license_key: data.licenseKey, device_hash: fp })
+    });
+
+    const result = await response.json();
+    LICENSE_STATUS = result; // { valid: true/false, reason: ... }
+
+    if (result.valid) {
+        console.log('[MetaPrompt] License Validated:', result);
+    } else {
+        console.warn('[MetaPrompt] License Validation Failed:', result.reason);
+    }
+
+  } catch (e) {
+    console.error('[MetaPrompt] Validation Network Error:', e);
+    // Fail safe: If server is down, maybe allow? For now, BLOCK.
+    LICENSE_STATUS = { valid: false, reason: 'Validation Server Unreachable' };
+  }
+}
+
+// Check on Startup/Install
+chrome.runtime.onStartup.addListener(validateLicense);
+chrome.runtime.onInstalled.addListener(validateLicense);
+
+// Re-check every 30 mins
+chrome.alarms.create('licenseCheck', { periodInMinutes: 30 });
+chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name === 'licenseCheck') validateLicense();
+});
+
+// Listener for License Update
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (msg.action === 'VALIDATE_LICENSE_NOW') {
+        validateLicense().then(() => sendResponse(LICENSE_STATUS));
+        return true;
+    }
+});
+
 async function handleOptimization(userPrompt, apiKey, history = '') {
+  // BLOCK IF INVALID
+  if (!LICENSE_STATUS.valid) {
+      throw new Error(`Activation Required: ${LICENSE_STATUS.reason}`);
+  }
+
   // List of models to try in order of preference (Speed/Cost -> Stability)
   const models = [
     'gemini-3-flash-preview', // User requested specific model

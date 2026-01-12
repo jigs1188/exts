@@ -1,8 +1,15 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+const fs = require('fs');
 
-// Connect to SQLite DB (creates file if missing)
-const dbPath = process.env.RENDER ? '/var/data/licensing.db' : path.resolve(__dirname, 'licensing.db');
+// Connect to SQLite DB
+// On Render, we try /var/data (Persistent Disk). If not available, we use local dir (Ephemeral).
+let dbPath = path.resolve(__dirname, 'licensing.db');
+if (process.env.RENDER && fs.existsSync('/var/data')) {
+    dbPath = '/var/data/licensing.db';
+    console.log('[Database] Using Persistent Disk:', dbPath);
+} else {
+    console.log('[Database] Using Local Storage (Warning: Data may be lost on restart):', dbPath);
+}
+
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
         console.error('Error opening database:', err.message);

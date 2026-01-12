@@ -1,4 +1,14 @@
 const fs = require('fs');
+const sqlite3 = require('sqlite3').verbose(); // Also missed in previous replace? checking logs... Actually line 1 was just `const fs...` in my previous view. But wait, `sqlite3` is used on line 13.
+// In the current file view (Step 814):
+// 1: const fs = require('fs');
+// 2: 
+// 3: // Connect to SQLite DB
+// ...
+// 13: const db = new sqlite3.Database(dbPath, (err) => {
+
+// I need to add `sqlite3` AND `path`.
+const path = require('path');
 
 // Connect to SQLite DB
 // On Render, we try /var/data (Persistent Disk). If not available, we use local dir (Ephemeral).

@@ -129,7 +129,10 @@
 
 <body>
 
-    <h2>Admin Control</h2>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1>Admin Control</h1>
+        <button onclick="logout()" style="background: #e53e3e; font-size: 12px; padding: 4px 8px;">Logout</button>
+    </div>
 
     <div class="card">
         <h3>Generate Private Link</h3>
@@ -288,6 +291,11 @@
                 body: JSON.stringify({ secret: SECRET, token })
             });
             alert('Link Extended! User can install now.');
+        }
+
+        function logout() {
+            localStorage.removeItem('admin_secret');
+            location.reload();
         }
     </script>
 

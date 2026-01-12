@@ -6,7 +6,7 @@ const db = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const ADMIN_SECRET = 'admin123'; // Simple protection for demo
+const ADMIN_SECRET = process.env.ADMIN_SECRET || 'admin123'; // Uses Render Env Var, fallback to default for local
 
 app.use(cors());
 app.use(express.json());

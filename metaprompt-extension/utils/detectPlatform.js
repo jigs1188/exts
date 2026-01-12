@@ -2,13 +2,13 @@ const PlatformDetector = {
   detect() {
     const hostname = window.location.hostname;
 
-    if (hostname.includes('chat.openai.com')) {
+    if (hostname.includes('chat.openai.com') || hostname.includes('chatgpt.com')) {
       return {
         name: 'chatgpt',
         selectors: {
-          textarea: '#prompt-textarea, textarea[data-id], textarea',
+          textarea: '#prompt-textarea, div[contenteditable="true"][id="prompt-textarea"], div[contenteditable="true"][role="textbox"], main form textarea',
           sendButton: 'button[data-testid="send-button"], button[aria-label="Send prompt"]',
-          container: 'main form, div[class*="composer"]'
+          container: 'main form, #prompt-textarea'
         }
       };
     }
@@ -17,8 +17,8 @@ const PlatformDetector = {
       return {
         name: 'gemini',
         selectors: {
-          textarea: '.ql-editor[contenteditable="true"], div[contenteditable="true"][role="textbox"]',
-          sendButton: 'button[aria-label*="Send"], button[mattooltip*="Send"]',
+          textarea: '.ql-editor, div[contenteditable="true"][role="textbox"], div[role="textbox"]',
+          sendButton: 'button[aria-label*="Send"], .send-button',
           container: 'chat-input, .input-area-container'
         }
       };
@@ -28,14 +28,30 @@ const PlatformDetector = {
       return {
         name: 'claude',
         selectors: {
-          textarea: 'div[contenteditable="true"][role="textbox"], fieldset div[contenteditable="true"]',
-          sendButton: 'button[aria-label="Send Message"], button[aria-label*="Send"]',
+          textarea: 'div[contenteditable="true"], fieldset div[contenteditable="true"]',
+          sendButton: 'button[aria-label*="Send"]',
           container: 'fieldset, div[class*="input-container"]'
         }
       };
     }
 
     return null;
+  },
+
+  isValidTextarea(element) {
+    if (!element) return false;
+
+    // Robust visibility check
+    const rect = element.getBoundingClientRect();
+    const isVisible = rect.width > 0 && rect.height > 0 && 
+                      window.getComputedStyle(element).visibility !== 'hidden' &&
+                      window.getComputedStyle(element).display !== 'none';
+
+    const isEditable = element.isContentEditable ||
+                      element.tagName === 'TEXTAREA' ||
+                      element.getAttribute('contenteditable') === 'true';
+
+    return isVisible && isEditable;
   },
 
   getTextarea(platform) {
@@ -49,17 +65,6 @@ const PlatformDetector = {
       }
     }
     return null;
-  },
-
-  isValidTextarea(element) {
-    if (!element) return false;
-
-    const isVisible = element.offsetParent !== null;
-    const isEditable = element.isContentEditable ||
-                      element.tagName === 'TEXTAREA' ||
-                      element.getAttribute('contenteditable') === 'true';
-
-    return isVisible && isEditable;
   },
 
   getSendButton(platform) {
@@ -81,6 +86,10 @@ const PlatformDetector = {
         return container;
       }
     }
+    // Fallback: If we are on a known platform, return body so injection doesn't fail entirely
+    if (this.detect()) {
+        return document.body;
+    }
     return document.body;
   },
 
@@ -101,6 +110,7 @@ const PlatformDetector = {
   setText(textarea, text) {
     if (!textarea) return false;
 
+    // Case 1: Standard textarea
     if (textarea.tagName === 'TEXTAREA') {
       textarea.value = text;
       textarea.dispatchEvent(new Event('input', { bubbles: true }));
@@ -108,26 +118,50 @@ const PlatformDetector = {
       return true;
     }
 
+    // Case 2: ContentEditable (standard for most chat apps)
     if (textarea.isContentEditable) {
-      textarea.textContent = text;
+      textarea.focus();
+      
+      // Strategy A: The "User Simulation" (Most Reliable if supported)
+      // Select everything first
+      document.execCommand('selectAll', false, null);
+      // Attempt to replace selection with text
+      let success = false;
+      try {
+        success = document.execCommand('insertText', false, text);
+      } catch (e) {}
 
-      const inputEvent = new InputEvent('input', {
-        bubbles: true,
-        cancelable: true,
-        inputType: 'insertText',
-        data: text
-      });
-      textarea.dispatchEvent(inputEvent);
+      // Verification of Strategy A
+      if (success) {
+        const check = this.getText(textarea);
+        if (check && check.trim() === text.trim()) return true;
+      }
 
-      const changeEvent = new Event('change', { bubbles: true });
-      textarea.dispatchEvent(changeEvent);
+      console.warn('[MetaPrompt] Standard injection failed. Engaging Nuclear Fallback.');
 
-      const range = document.createRange();
-      const selection = window.getSelection();
-      range.selectNodeContents(textarea);
-      range.collapse(false);
-      selection.removeAllRanges();
-      selection.addRange(range);
+      // Strategy B: The "Nuclear" React Force Update
+      // 1. Direct DOM manipulation
+      // Preserve newlines using CSS style usually found in these editors
+      textarea.style.whiteSpace = 'pre-wrap';
+      textarea.textContent = text; // Nuke existing, replace with new
+
+      // 2. Dispatch the "Event Storm" to wake up React
+      const events = [
+        new Event('focus', { bubbles: true }),
+        // Key events often trigger "dirty" flags
+        new KeyboardEvent('keydown', { bubbles: true, key: 'a' }),
+        new InputEvent('input', { 
+            bubbles: true, 
+            inputType: 'insertText',
+            data: text,
+            view: window 
+        }),
+        new KeyboardEvent('keyup', { bubbles: true, key: 'a' }),
+        new Event('change', { bubbles: true }),
+        new Event('blur', { bubbles: true })
+      ];
+
+      events.forEach(evt => textarea.dispatchEvent(evt));
 
       return true;
     }

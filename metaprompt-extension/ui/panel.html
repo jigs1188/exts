@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MetaPrompt Settings</title>
   <link rel="stylesheet" href="panel.css">
 </head>
+
 <body>
   <div class="container">
     <header>
@@ -22,9 +24,24 @@
         <ol>
           <li>Navigate to ChatGPT, Gemini, or Claude</li>
           <li>Type your prompt in the input field</li>
-          <li>Click the <strong>✨ floating button</strong> or press <kbd>Ctrl+Shift+E</kbd></li>
+          <li>Click the <strong>✨ floating button</strong> or press <kbd>Alt+Shift+P</kbd></li>
           <li>Your prompt will be automatically enhanced!</li>
         </ol>
+      </section>
+
+      <section class="info-card">
+        <h2>🔑 API Configuration</h2>
+        <p style="font-size: 13px; color: #4a5568; margin-bottom: 12px;">Add your Gemini API Key to enable AI-powered
+          optimization. Get it free from <a href="https://aistudio.google.com/app/apikey" target="_blank"
+            style="color: #667eea;">Google AI Studio</a>.</p>
+        <div class="input-group" style="display: flex; gap: 8px; flex-direction: column;">
+          <input type="password" id="apiKey" placeholder="Paste Gemini API Key here"
+            style="padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px; width: 100%; box-sizing: border-box;">
+          <button id="saveKey"
+            style="background: #4caf50; color: white; border: none; padding: 8px; border-radius: 6px; cursor: pointer;">Save
+            Key</button>
+          <p id="status" style="font-size: 12px; margin-top: 4px; height: 16px;"></p>
+        </div>
       </section>
 
       <section class="features">
@@ -84,7 +101,7 @@
       <section class="shortcuts">
         <h2>⌨️ Keyboard Shortcuts</h2>
         <div class="shortcut">
-          <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>E</kbd>
+          <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>P</kbd>
           <span>Enhance Prompt</span>
         </div>
       </section>
@@ -109,4 +126,5 @@
 
   <script src="panel.js"></script>
 </body>
+
 </html>

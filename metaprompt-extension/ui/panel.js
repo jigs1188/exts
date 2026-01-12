@@ -1,7 +1,51 @@
 document.addEventListener('DOMContentLoaded', () => {
   loadStats();
+  loadApiKey();
   setupEventListeners();
+  setupApiKeyListeners();
 });
+
+function loadApiKey() {
+  if (typeof chrome !== 'undefined' && chrome.storage) {
+    chrome.storage.sync.get(['geminiApiKey'], (result) => {
+      if (result.geminiApiKey) {
+        document.getElementById('apiKey').value = result.geminiApiKey;
+        showStatus('Key loaded', 'success');
+      }
+    });
+  }
+}
+
+function setupApiKeyListeners() {
+  const saveBtn = document.getElementById('saveKey');
+  const input = document.getElementById('apiKey');
+
+  if (saveBtn && input) {
+    saveBtn.addEventListener('click', () => {
+      const key = input.value.trim();
+      if (!key) {
+        showStatus('Please enter a key', 'error');
+        return;
+      }
+
+      if (typeof chrome !== 'undefined' && chrome.storage) {
+        chrome.storage.sync.set({ geminiApiKey: key }, () => {
+          showStatus('API Key saved!', 'success');
+          // Clear visual input for security after a moment, or keep it masked
+          setTimeout(() => showStatus('', ''), 3000);
+        });
+      }
+    });
+  }
+}
+
+function showStatus(msg, type) {
+  const status = document.getElementById('status');
+  if (status) {
+    status.textContent = msg;
+    status.style.color = type === 'error' ? '#e53e3e' : '#38a169';
+  }
+}
 
 function loadStats() {
   if (typeof chrome !== 'undefined' && chrome.storage) {

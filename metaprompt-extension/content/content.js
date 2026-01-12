@@ -15,17 +15,19 @@
 
     console.log(`[MetaPrompt] Detected platform: ${platform.name}`);
 
+    console.log(`[MetaPrompt] Detected platform: ${platform.name}`);
+
+    // Initialize UI immediately so usage is visible
+    UIObserver.init(platform);
+    initialized = true;
+    setupKeyboardShortcut(platform);
+    
+    // Check for textarea just for logging purposes
     const waitForTextarea = setInterval(() => {
       const textarea = PlatformDetector.getTextarea(platform);
-
       if (textarea) {
         clearInterval(waitForTextarea);
-        console.log('[MetaPrompt] Textarea found, initializing UI');
-
-        UIObserver.init(platform);
-        initialized = true;
-
-        setupKeyboardShortcut(platform);
+        console.log('[MetaPrompt] Textarea found');
       }
     }, 1000);
 
@@ -35,8 +37,9 @@
   }
 
   function setupKeyboardShortcut(platform) {
-    document.addEventListener('keydown', (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'E') {
+    document.addEventListener('keydown', async (e) => {
+      // Changed to Alt+Shift+P to avoid conflicts with browser dev tools (Ctrl+Shift+E is often Network tab)
+      if (e.altKey && e.shiftKey && (e.key === 'p' || e.key === 'P')) {
         e.preventDefault();
 
         const textarea = PlatformDetector.getTextarea(platform);
@@ -45,10 +48,16 @@
         const originalPrompt = PlatformDetector.getText(textarea);
         if (!originalPrompt || originalPrompt.trim().length === 0) return;
 
-        const optimizedPrompt = PromptOptimizer.optimize(originalPrompt);
-        PlatformDetector.setText(textarea, optimizedPrompt);
-
-        UIObserver.showNotification('Prompt enhanced with Ctrl+Shift+E', 'success');
+        UIObserver.showNotification('Optimizing prompt...', 'info');
+        
+        try {
+          const optimizedPrompt = await PromptOptimizer.optimize(originalPrompt);
+          PlatformDetector.setText(textarea, optimizedPrompt);
+          UIObserver.showNotification('Prompt enhanced with Alt+Shift+P', 'success');
+        } catch (err) {
+          console.error(err);
+          UIObserver.showNotification('Optimization failed', 'error');
+        }
       }
     });
   }

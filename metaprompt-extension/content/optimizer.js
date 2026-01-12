@@ -19,7 +19,7 @@ Format your response with clear sections and bullet points where helpful.`
     coding: {
       pattern: /(write|create|build|code|implement|function|class|debug|fix|error|bug|script|program|algorithm)/i,
       transform: (prompt) => {
-        const language = this.detectLanguage(prompt);
+        const language = PromptOptimizer.detectLanguage(prompt);
         return `You are an expert software engineer specializing in ${language || 'multiple programming languages'}.
 
 Task: ${prompt}
@@ -60,7 +60,6 @@ Output format:
 3. Solution (with code if applicable)
 4. Explanation
 5. Prevention tips`
-      }
     },
 
     explanation: {
@@ -83,7 +82,6 @@ Output format:
 4. Common Misconceptions
 5. Practical Applications
 6. Further Learning Resources`
-      }
     },
 
     writing: {
@@ -103,7 +101,6 @@ Deliverable:
 - Well-structured content
 - Appropriate formatting
 - Engaging and professional tone`
-      }
     },
 
     analysis: {
@@ -125,7 +122,6 @@ Output structure:
 3. Key Findings
 4. Comparison (if applicable)
 5. Recommendations/Conclusions`
-      }
     }
   },
 
@@ -172,21 +168,126 @@ Output structure:
     return 'general';
   },
 
-  optimize(prompt) {
+  async optimize(prompt) {
     if (!prompt || prompt.trim().length === 0) {
       return prompt;
     }
 
     const trimmedPrompt = prompt.trim();
 
-    if (trimmedPrompt.length < 10) {
-      return trimmedPrompt;
+    // Check for API Key first
+    try {
+      const apiKey = await this.getApiKey();
+      if (apiKey) {
+        
+        const response = await this.sendMessageToBackground({
+          action: 'OPTIMIZE_PROMPT',
+          prompt: trimmedPrompt,
+          apiKey: apiKey
+        });
+
+        if (response && response.success) {
+          return response.data;
+        } else {
+          // CRITICAL CHANGE: If API explicitly checks and fails (e.g., Quota, Key), 
+          // DO NOT fallback. Show the error to the user.
+          const errorMsg = response ? response.error : 'Unknown API Error';
+          
+          if (errorMsg.includes('Quota') || errorMsg.includes('API key') || errorMsg.includes('permission') || errorMsg.includes('403') || errorMsg.includes('429')) {
+             throw new Error('Gemini API Error: ' + errorMsg);
+          }
+
+          console.warn('[MetaPrompt] API connection failed, falling back to templates:', errorMsg);
+        }
+      }
+    } catch (e) {
+      // Re-throw specific API errors so the UI shows them
+      if (e.message.includes('Gemini API Error')) {
+        throw e;
+      }
+      console.error('[MetaPrompt] Error fetching API key or calling background:', e);
     }
 
+    // Fallback to static templates (Only if API Key is missing or Connection failed)
+    // console.log('[MetaPrompt] Using local templates');
     const intent = this.detectIntent(trimmedPrompt);
     const template = this.templates[intent];
 
     return template.transform(trimmedPrompt);
+  },
+
+  async sendMessageToBackground(message) {
+    const MAX_RETRIES = 3;
+    let attempt = 0;
+
+    while (attempt < MAX_RETRIES) {
+      attempt++;
+      try {
+        return await this._attemptSendMessage(message);
+      } catch (error) {
+        const isConnectionError = error.message.includes('Receiving end does not exist') || 
+                                  error.message.includes('disconnected') ||
+                                  error.message.includes('timed out');
+        
+        if (isConnectionError && attempt < MAX_RETRIES) {
+          // console.log(`[MetaPrompt] Connection failed (Attempt ${attempt}). Retrying in 300ms...`);
+          await new Promise(resolve => setTimeout(resolve, 300));
+          continue; // Retry
+        }
+        
+        // If it's the last attempt or not a retriable error, return failure
+        return { success: false, error: error.message };
+      }
+    }
+  },
+
+  _attemptSendMessage(message) {
+    return new Promise((resolve, reject) => {
+        if (!chrome.runtime?.id) {
+          return reject(new Error('Extension context invalidated. Please refresh the page.'));
+        }
+
+        // Timeout race
+        const timeoutId = setTimeout(() => {
+            reject(new Error('Request timed out (Background Script unresponsive)'));
+        }, 60000); // 60s timeout for model discovery processing
+
+        chrome.runtime.sendMessage(message, (response) => {
+          clearTimeout(timeoutId);
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else {
+            resolve(response);
+          }
+        });
+    });
+  },
+
+  getApiKey() {
+    return new Promise((resolve) => {
+      // Check if API is supported in this context
+      if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.sync) {
+        resolve(null);
+        return;
+      }
+
+      try {
+        chrome.storage.sync.get(['geminiApiKey'], (result) => {
+          if (chrome.runtime.lastError) {
+             resolve(null);
+             return;
+          }
+          if (result && result.geminiApiKey) {
+            resolve(result.geminiApiKey);
+          } else {
+            resolve(null);
+          }
+        });
+      } catch (e) {
+        console.error('[MetaPrompt] Storage access exception:', e);
+        resolve(null);
+      }
+    });
   },
 
   getStats(originalPrompt, optimizedPrompt) {

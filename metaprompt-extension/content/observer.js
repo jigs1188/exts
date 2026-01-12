@@ -35,7 +35,9 @@ const UIObserver = {
 
   isButtonVisible() {
     const shadowHost = document.getElementById('metaprompt-button-host');
-    if (!shadowHost || !shadowHost.offsetParent) return false;
+    // Check if element exists and is connected to DOM.
+    // avoided offsetParent check as it returns null for fixed elements in Firefox
+    if (!shadowHost || !shadowHost.isConnected) return false;
 
     if (shadowHost.shadowRoot) {
       const button = shadowHost.shadowRoot.querySelector('.metaprompt-button');
@@ -50,10 +52,9 @@ const UIObserver = {
       return;
     }
 
-    const container = PlatformDetector.getInputContainer(this.platform);
-    if (!container) {
-      return;
-    }
+    // Always inject into body to ensure visibility, regardless of platform quirks
+    // The button is fixed position anyway, so it doesn't need to be inside the form container
+    const container = document.body;
 
     const existingHost = document.getElementById('metaprompt-button-host');
     if (existingHost) {
@@ -66,7 +67,10 @@ const UIObserver = {
       position: fixed;
       bottom: 120px;
       right: 24px;
-      z-index: 999999;
+      width: 56px;
+      height: 56px;
+      z-index: 2147483647;
+      pointer-events: auto;
     `;
 
     const shadowRoot = shadowHost.attachShadow({ mode: 'open' });
@@ -155,7 +159,9 @@ const UIObserver = {
     this.buttonInjected = true;
   },
 
-  handleButtonClick(button) {
+  async handleButtonClick(button) {
+    if (button.classList.contains('processing')) return;
+
     const textarea = PlatformDetector.getTextarea(this.platform);
     if (!textarea) {
       this.showNotification('Could not find input field', 'error');
@@ -163,6 +169,7 @@ const UIObserver = {
     }
 
     const originalPrompt = PlatformDetector.getText(textarea);
+    
     if (!originalPrompt || originalPrompt.trim().length === 0) {
       this.showNotification('Please enter a prompt first', 'warning');
       return;
@@ -171,23 +178,45 @@ const UIObserver = {
     button.classList.add('processing');
     button.innerHTML = '⚡';
 
-    setTimeout(() => {
-      const optimizedPrompt = PromptOptimizer.optimize(originalPrompt);
+    // Small delay to allow UI to update
+    await new Promise(r => setTimeout(r, 100));
+
+    try {
+      this.showNotification('Optimizing...', 'info');
+      
+      const optimizedPrompt = await PromptOptimizer.optimize(originalPrompt);
+      
+      if (!optimizedPrompt) {
+        throw new Error('Optimization returned empty result');
+      }
+
+      if (optimizedPrompt === originalPrompt) {
+        this.showNotification('Prompt already optimized', 'info');
+        button.innerHTML = '✨';
+        return;
+      }
+
       const success = PlatformDetector.setText(textarea, optimizedPrompt);
 
       if (success) {
         this.showNotification('Prompt enhanced successfully!', 'success');
         button.innerHTML = '✅';
       } else {
-        this.showNotification('Failed to enhance prompt', 'error');
+        this.showNotification('Failed to update text', 'error');
         button.innerHTML = '❌';
       }
-
+    } catch (error) {
+      console.error('[MetaPrompt] Optimization error:', error);
+      // Show the actual error message if available
+      const errorMsg = error.message || error.toString();
+      this.showNotification(errorMsg.length < 50 ? errorMsg : 'Error optimizing prompt', 'error');
+      button.innerHTML = '❌';
+    } finally {
       setTimeout(() => {
         button.classList.remove('processing');
         button.innerHTML = '✨';
       }, 1500);
-    }, 300);
+    }
   },
 
   showNotification(message, type = 'info') {

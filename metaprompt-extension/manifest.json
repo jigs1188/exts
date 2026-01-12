@@ -1,8 +1,14 @@
 {
   "manifest_version": 3,
-  "name": "MetaPrompt – AI Prompt Engineer & Optimizer",
   "version": "1.0.0",
+  "name": "MetaPrompt – AI Prompt Engineer & Optimizer",
   "description": "Enhance your AI prompts for ChatGPT, Gemini, and Claude with advanced prompt engineering techniques",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "metaprompt@temporary-addon.org",
+      "strict_min_version": "109.0"
+    }
+  },
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
@@ -10,17 +16,21 @@
   },
   "permissions": [
     "activeTab",
-    "storage"
+    "storage",
+    "alarms"
   ],
   "host_permissions": [
     "https://chat.openai.com/*",
+    "https://chatgpt.com/*",
     "https://gemini.google.com/*",
-    "https://claude.ai/*"
+    "https://claude.ai/*",
+    "https://generativelanguage.googleapis.com/*"
   ],
   "content_scripts": [
     {
       "matches": [
         "https://chat.openai.com/*",
+        "https://chatgpt.com/*",
         "https://gemini.google.com/*",
         "https://claude.ai/*"
       ],
@@ -40,5 +50,10 @@
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     }
+  },
+  "background": {
+    "scripts": [
+      "background.js"
+    ]
   }
 }

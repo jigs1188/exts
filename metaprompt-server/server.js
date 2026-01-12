@@ -14,6 +14,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // --- ADMIN ROUTES ---
 
+// 0. Verify Secret (Login)
+app.post('/api/admin/verify', (req, res) => {
+    const { secret } = req.body;
+    if (secret === ADMIN_SECRET) return res.json({ success: true });
+    return res.status(403).json({ error: 'Incorrect Secret' });
+});
+
 // Generate a new 1-time Install Link
 app.post('/api/admin/generate-link', async (req, res) => {
     const { secret, note, expiryMinutes = 30, maxActivations = 1 } = req.body;
@@ -26,7 +33,12 @@ app.post('/api/admin/generate-link', async (req, res) => {
             [token, JSON.stringify({ note, max: maxActivations }), expiryMinutes]
         );
         
-        res.json({ success: true, link: `http://localhost:${PORT}/install.html?token=${token}`, token });
+        // Dynamic Host Generation (Works on Localhost + Render)
+        const protocol = req.headers['x-forwarded-proto'] || req.protocol; 
+        const host = req.get('host');
+        const link = `${protocol}://${host}/install.html?token=${token}`;
+
+        res.json({ success: true, link, token });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }

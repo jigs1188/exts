@@ -19,10 +19,13 @@ Most AI responses are only as good as the prompt you give them. MetaPrompt fixes
 
 ## 📥 Installation
 
-### 1. Chrome / Edge / Brave
+### 1. Chromium Browsers (Chrome, Brave, Edge, Opera)
 1.  Download or Clone this repository.
-2.  Open `chrome://extensions`.
-3.  Enable **"Developer mode"** (toggle in the top right).
+2.  Open your extensions page:
+    *   **Chrome/Brave:** `chrome://extensions`
+    *   **Edge:** `edge://extensions`
+    *   **Opera:** `opera://extensions`
+3.  Enable **"Developer mode"** (usually a toggle in the top right).
 4.  Click **"Load unpacked"**.
 5.  Select the `metaprompt-extension` folder.
 
@@ -30,6 +33,13 @@ Most AI responses are only as good as the prompt you give them. MetaPrompt fixes
 1.  Open `about:debugging#/runtime/this-firefox`.
 2.  Click **"Load Temporary Add-on..."**.
 3.  Select the `manifest.json` file from the `metaprompt-extension` folder.
+
+### 3. Safari (macOS)
+Safari requires converting the extension to a native Mac app.
+1.  Open Terminal.
+2.  Run: `xcrun safari-web-extension-converter /path/to/metaprompt-extension`
+3.  Open the generated Xcode project and Run it.
+*(Note: This requires Xcode installed).*
 
 ---
 

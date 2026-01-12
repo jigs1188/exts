@@ -16,11 +16,30 @@ Instructions:
 Format your response with clear sections and bullet points where helpful.`
     },
 
+    strategy: {
+      pattern: /(sell|money|income|price|cost|business|plan|strategy|market|distribute|share|private|license|protect|hack|prevent)/i,
+      transform: (prompt) => `You are an expert Strategic Consultant and Product Manager.
+
+Strategy Task: ${prompt}
+
+Objective:
+- Analyze the business/security goal
+- Provide a robust, step-by-step plan
+- Address risks and mitigation strategies
+- Suggest tools or platforms if relevant
+
+Output format:
+1. Executive Summary
+2. Strategic Steps
+3. Risk Analysis
+4. Recommended Implementation path`
+    },
+
     coding: {
       pattern: /(write|create|build|code|implement|function|class|debug|fix|error|bug|script|program|algorithm)/i,
       transform: (prompt) => {
         const language = PromptOptimizer.detectLanguage(prompt);
-        return `You are an expert software engineer specializing in ${language || 'multiple programming languages'}.
+        return `You are an expert software engineer specializing in ${language || 'general software architecture'}.
 
 Task: ${prompt}
 
@@ -127,19 +146,19 @@ Output structure:
 
   detectLanguage(prompt) {
     const languages = {
-      'javascript|js|node|react|vue|angular': 'JavaScript',
-      'python|py|django|flask': 'Python',
-      'java(?!script)': 'Java',
-      'c\\+\\+|cpp': 'C++',
-      'c#|csharp': 'C#',
-      'ruby|rails': 'Ruby',
-      'php': 'PHP',
-      'swift|ios': 'Swift',
-      'kotlin|android': 'Kotlin',
-      'go|golang': 'Go',
-      'rust': 'Rust',
-      'typescript|ts': 'TypeScript',
-      'sql|database|query': 'SQL'
+      '\\b(javascript|js|node|react|vue|angular)\\b': 'JavaScript',
+      '\\b(python|py|django|flask)\\b': 'Python',
+      '\\b(java(?!script))\\b': 'Java',
+      '\\b(c\\+\\+|cpp)\\b': 'C++',
+      '\\b(c#|csharp)\\b': 'C#',
+      '\\b(ruby|rails)\\b': 'Ruby',
+      '\\b(php)\\b': 'PHP',
+      '\\b(swift|ios)\\b': 'Swift',
+      '\\b(kotlin|android)\\b': 'Kotlin',
+      '\\b(go|golang)\\b': 'Go',
+      '\\b(rust)\\b': 'Rust',
+      '\\b(typescript|ts)\\b': 'TypeScript',
+      '\\b(sql|database|query)\\b': 'SQL'
     };
 
     for (const [pattern, lang] of Object.entries(languages)) {
@@ -152,6 +171,7 @@ Output structure:
 
   detectIntent(prompt) {
     const priorities = [
+      'strategy', // Check this first!
       'debugging',
       'coding',
       'explanation',
@@ -180,9 +200,14 @@ Output structure:
       const apiKey = await this.getApiKey();
       if (apiKey) {
         
+        // NEW: Get Context
+        const platform = PlatformDetector.detect();
+        const chatHistory = platform ? PlatformDetector.getChatHistory(platform) : '';
+
         const response = await this.sendMessageToBackground({
           action: 'OPTIMIZE_PROMPT',
           prompt: trimmedPrompt,
+          history: chatHistory, // Send the context
           apiKey: apiKey
         });
 
@@ -194,7 +219,8 @@ Output structure:
           const errorMsg = response ? response.error : 'Unknown API Error';
           
           if (errorMsg.includes('Quota') || errorMsg.includes('API key') || errorMsg.includes('permission') || errorMsg.includes('403') || errorMsg.includes('429')) {
-             throw new Error('Gemini API Error: ' + errorMsg);
+             // throw new Error('Gemini API Error: ' + errorMsg); // OLD: Hard fail
+             console.warn('[MetaPrompt] API Quota/Key issue. Falling back to templates:', errorMsg); // NEW: Soft fail
           }
 
           console.warn('[MetaPrompt] API connection failed, falling back to templates:', errorMsg);
@@ -217,7 +243,7 @@ Output structure:
   },
 
   async sendMessageToBackground(message) {
-    const MAX_RETRIES = 3;
+    const MAX_RETRIES = 5; // Increased from 3
     let attempt = 0;
 
     while (attempt < MAX_RETRIES) {
@@ -227,11 +253,14 @@ Output structure:
       } catch (error) {
         const isConnectionError = error.message.includes('Receiving end does not exist') || 
                                   error.message.includes('disconnected') ||
-                                  error.message.includes('timed out');
+                                  error.message.includes('timed out') ||
+                                  error.message.includes('Could not establish connection');
         
         if (isConnectionError && attempt < MAX_RETRIES) {
-          // console.log(`[MetaPrompt] Connection failed (Attempt ${attempt}). Retrying in 300ms...`);
-          await new Promise(resolve => setTimeout(resolve, 300));
+          // Exponential Backoff: 500ms, 1000ms, 1500ms, 2000ms...
+          const waitTime = attempt * 500;
+          // console.log(`[MetaPrompt] Connection failed. Retrying in ${waitTime}ms...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
           continue; // Retry
         }
         

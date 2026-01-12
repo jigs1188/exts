@@ -1,6 +1,6 @@
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'OPTIMIZE_PROMPT') {
-    handleOptimization(request.prompt, request.apiKey)
+    handleOptimization(request.prompt, request.apiKey, request.history)
       .then(response => sendResponse({ success: true, data: response }))
       .catch(error => sendResponse({ success: false, error: error.message }));
     return true; // Will respond asynchronously
@@ -8,20 +8,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 // Create an alarm to keep the service worker active/wake it up
-chrome.alarms.create('keepAlive', { periodInMinutes: 0.5 });
-
-chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === 'keepAlive') {
-    // console.log('Keep-alive alarm fired');
+// Keep-Alive Connection Handler (The "Heartbeat")
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name === 'keepAlive') {
+    // console.log('[MetaPrompt] Keep-alive port connected');
+    port.onDisconnect.addListener(() => {
+      // console.log('[MetaPrompt] Keep-alive port disconnected');
+    });
   }
 });
 
-// Force reconnection on install/startup
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.alarms.create('keepAlive', { periodInMinutes: 0.5 });
-});
-
-async function handleOptimization(userPrompt, apiKey) {
+async function handleOptimization(userPrompt, apiKey, history = '') {
   // List of models to try in order of preference (Speed/Cost -> Stability)
   const models = [
     'gemini-3-flash-preview', // User requested specific model
@@ -32,22 +29,86 @@ async function handleOptimization(userPrompt, apiKey) {
     'gemini-pro' 
   ];
 
-  const systemInstruction = `You are a world-class Prompt Engineer and AI Optimization Specialist.
-Your goal is to rewrite the user's raw prompt into a masterfully crafted, highly effective prompt for an LLM (like ChatGPT or Gemini).
+  const systemInstruction = `You are an elite Prompt Engineering AI.
+### YOUR GOAL
+Rewrite the user's raw prompt into a "God-Tier" optimized prompt for an LLM.
 
-Follow these steps:
-1. ANALYZE intent: Identify if it's coding, writing, debugging, learning, or analysis.
-2. ENHANCE: Add a specific expert persona, clear constraints, and structural requirements (e.g., "Think step-by-step").
-3. REFINE: Ensure clarity, remove ambiguity, and fix grammar.
-4. FORMAT: Use markdown structure (headers, bullet points) if complex.
+### CRITICAL RULES (Follow these strictly)
+1.  **NO PREAMBLE**: Did not say "Here is the prompt" or "To optimize this...". Start DIRECTLY with the prompt content.
+2.  **NO POSTSCRIPT**: Do not add explanations at the end.
+3.  **DIRECT ACTION**: The output must be the *exact text* the user will paste into ChatGPT.
 
-CRITICAL RULES:
-- Output ONLY the optimized prompt. Do not add introductions like "Here is the optimized prompt:".
-- Preserve the user's core intent. Do not solve the problem yourself, just write the prompt asking for the solution.
-- If the prompt is for code, specify strict clean code guidelines.
-- If the prompt is for writing, specify tone and audience.
+### STRATEGY: "DYNAMIC EXPERT ADAPTATION"
+**Your Primary Task is to analyze the User's Request + History and *derive* the perfect expert persona.**
 
-User Raw Prompt:
+1.  **ANALYZE THE DOMAIN**:
+    *   If user asks about *Python Data Analysis*, become a **"Senior Data Scientist"**.
+    *   If user asks about *Python Web Scraping*, become a **"Web Scraping Specialist"**.
+    *   If user asks about *Python Games*, become a **"Game Engine Architect"**.
+    *   *NEVER* default to a generic "Coder". You must match the specific niche of the query.
+
+2.  **MAINTAIN CONTEXT**:
+    *   If the chat history shows we are building a *Finance App*, keep the "FinTech Developer" persona, even for generic questions like "fix this bug".
+
+3.  **ADAPT FORMALITY**:
+    *   Coding -> Strict, Technical, Concise.
+    *   Ideation/Strategy -> Creative, Consultative, Detailed.
+
+### FEW-SHOT EXAMPLES
+
+**Input:** "make a snake game in python"
+**Reasoning:** User wants a game -> Persona: Game Dev.
+**Output:**
+Act as a **Senior Python Game Developer** with deep expertise in Pygame. 
+Create a highly optimized, object-oriented implementation of Snake.
+**Requirements:**
+- use OOP principles (Classes for Snake, Food, Game).
+- Include score tracking.
+
+**Input:** "plot this csv data in python"
+**Reasoning:** User wants data viz -> Persona: Data Scientist.
+**Output:**
+Act as a **Lead Data Scientist** specializing in Python Visualization (Matplotlib/Seaborn).
+Write a script to load the CSV and generate insightful visualizations.
+**Requirements:**
+- Handle missing values robustly.
+- Use Pandas for data manipulation.
+
+**Input:** "how should I sell my chrome extension privately"
+**Output:**
+Act as a Product Strategy Consultant.
+I have a Chrome Extension that I want to license to specific users (single PC/device) without publishing it publicly on the Web Store.
+**Goal:** Provide a secure distribution and licensing strategy.
+**Key Topics to Cover:**
+1. Method to lock the extension to a specific Device ID or PC.
+2. How to handle "off-store" distribution (ZIP vs. Private Hosting).
+3. Approaches for managing access keys or permissions.
+4. Pros/cons of this "Private Link" model vs. public listing.
+
+**Input:** "generate dummy user data in json"
+**Output:**
+Act as a Synthetic Data Generator. Generate a JSON dataset of 5 dummy users.
+**Schema Constraints:**
+- Root object must be an array \`users\`.
+- properties: \`id\` (UUID), \`name\` (Full Name), \`email\` (Valid format).
+- **Format:** Pure JSON. No Markdown ticks.
+
+**Input:** "explain quantum physics"
+**Output:**
+Act as a Quantum Physicist and Master Communicator (like Richard Feynman).
+Explain the fundamental principles of Quantum Mechanics to a curious high school student.
+**Key Topics:**
+1. Wave-Particle Duality (Use the Double-Slit analogy).
+2. Superposition (Schrödinger's Cat).
+3. Entanglement (Spooky action at a distance).
+**Constraint:** Avoid complex calculus. Focus on conceptual clarity.
+
+### CRITICAL RULES
+- **OUTPUT ONLY** the final optimized prompt. Do NOT explain your reasoning.
+- **NO PREAMBLE**. Start directly with the persona or instruction.
+- **PRESERVE** any specific data or code the user provided.
+
+${history ? `### CONTEXT (Past Chat History)\n${history}\n\n` : ''}### USER RAW PROMPT
 "${userPrompt}"`;
 
   let lastError = null;

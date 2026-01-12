@@ -9,6 +9,26 @@ const UIObserver = {
     this.injectButton();
     this.setupMutationObserver();
     this.setupPeriodicCheck();
+    this.setupKeepAlive(); // Start the heartbeat connection
+  },
+
+  setupKeepAlive() {
+    let port;
+    const connect = () => {
+      // console.log('[MetaPrompt] Connecting to background service...');
+      try {
+        port = chrome.runtime.connect({ name: 'keepAlive' });
+        port.onDisconnect.addListener(() => {
+          // console.log('[MetaPrompt] Port disconnected. Reconnecting...');
+          port = null;
+          setTimeout(connect, 1000); // Reconnect after 1 second
+        });
+      } catch (e) {
+        // console.error('[MetaPrompt] Keep-alive connection failed', e);
+        setTimeout(connect, 5000); // Retry longer if initial fail
+      }
+    };
+    connect();
   },
 
   setupMutationObserver() {

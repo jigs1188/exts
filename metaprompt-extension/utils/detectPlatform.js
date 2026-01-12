@@ -2,13 +2,14 @@ const PlatformDetector = {
   detect() {
     const hostname = window.location.hostname;
 
-    if (hostname.includes('chat.openai.com') || hostname.includes('chatgpt.com')) {
+      if (hostname.includes('chat.openai.com') || hostname.includes('chatgpt.com')) {
       return {
         name: 'chatgpt',
         selectors: {
           textarea: '#prompt-textarea, div[contenteditable="true"][id="prompt-textarea"], div[contenteditable="true"][role="textbox"], main form textarea',
           sendButton: 'button[data-testid="send-button"], button[aria-label="Send prompt"]',
-          container: 'main form, #prompt-textarea'
+          container: 'main form, #prompt-textarea',
+          history: 'div[data-message-author-role="user"], div[data-message-author-role="assistant"]'
         }
       };
     }
@@ -19,7 +20,8 @@ const PlatformDetector = {
         selectors: {
           textarea: '.ql-editor, div[contenteditable="true"][role="textbox"], div[role="textbox"]',
           sendButton: 'button[aria-label*="Send"], .send-button',
-          container: 'chat-input, .input-area-container'
+          container: 'chat-input, .input-area-container',
+          history: 'user-query, model-response, .user-query, .model-response'
         }
       };
     }
@@ -30,7 +32,8 @@ const PlatformDetector = {
         selectors: {
           textarea: 'div[contenteditable="true"], fieldset div[contenteditable="true"]',
           sendButton: 'button[aria-label*="Send"]',
-          container: 'fieldset, div[class*="input-container"]'
+          container: 'fieldset, div[class*="input-container"]',
+          history: '.font-user-message, .font-claude-message'
         }
       };
     }
@@ -105,6 +108,32 @@ const PlatformDetector = {
     }
 
     return '';
+  },
+
+  getChatHistory(platform) {
+    try {
+      if (!platform || !platform.selectors.history) return '';
+      
+      // Select all history items
+      const elements = document.querySelectorAll(platform.selectors.history);
+      if (!elements || elements.length === 0) return '';
+
+      // Get last 3 message turns to provide context without overloading
+      const recentElements = Array.from(elements).slice(-4); 
+      
+      let historyText = '';
+      recentElements.forEach(el => {
+        const text = el.innerText || el.textContent;
+        if (text && text.trim().length > 0) {
+           historyText += `[History]: ${text.substring(0, 300)}...\n`; // Limit per message
+        }
+      });
+
+      return historyText;
+    } catch (e) {
+      console.warn('[MetaPrompt] Failed to read chat history (Safe Fail)', e);
+      return '';
+    }
   },
 
   setText(textarea, text) {

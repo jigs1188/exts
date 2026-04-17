@@ -62,7 +62,7 @@ You get:       "Act as a Senior Python Game Developer with deep expertise
 ## ✨ Features
 
 - **🧠 6 Prompt Techniques** — Auto, Expert Persona, Chain of Thought, Few-Shot, Zero-Shot, ReAct
-- **⚙️ 4 Model Tiers** — Auto, Flash (cheapest), Pro (balanced), Latest (cutting-edge)
+- **⚙️ Dynamic Model Selection** — Choose exactly which model to use from a live dropdown
 - **🔍 Live Model Discovery** — Detects which Gemini models are available on your API key
 - **🛡️ Smart Fallback** — If a model is down or removed, silently tries the next working one
 - **📴 Works Offline** — Built-in smart templates need zero internet
@@ -403,41 +403,28 @@ For each technique below, type the same prompt and switch techniques between tes
 
 ---
 
-### ⚙️ Testing Model Tiers (API Key Required)
+### ⚙️ Testing Model Selection (API Key Required)
 
 1. Add your Gemini API key in the popup
-2. Click **🔍 Check My Available Models** → wait ~10 seconds
-3. Note which models are ✅ available
-
-**Test each tier:**
-```
-Prompt: "explain machine learning in simple terms"
-
-Flash tier  → Should complete in ~2-3 seconds
-Pro tier    → May take 3-5 seconds but more detailed output  
-Latest tier → May fail to first model, falls back silently
-Auto tier   → Should always work (widest fallback chain)
-```
+2. Click the **🔄 Refresh** button next to the Model Dropdown
+3. The dropdown will populate with the exact models your API key has access to (e.g., `gemini-2.0-flash`).
 
 **Verify fallback works:**
-1. Select **Latest** tier
+1. Select **Auto (Best available)** in the dropdown.
 2. Optimize any prompt
 3. Open the browser console (F12 → Console tab)
-4. Look for: `[MetaPrompt] Trying gemini-2.5-flash-preview-04-17`
-5. If that model fails: `[MetaPrompt] gemini-2.5-flash-preview-04-17 unavailable (404). Trying next...`
+4. Look for: `[MetaPrompt] Trying: gemini-3.1-flash-lite-preview`
+5. If that model fails: `[MetaPrompt] gemini-3.1-flash-lite-preview failed (404) — trying next`
 6. Then it tries the next model automatically ✅
 
 ---
 
-### 🔍 Testing Model Discovery
+### 🔍 Testing Model Caching
 
-1. Add your API key
-2. Open the popup → click **🔍 Check My Available Models**
-3. You should see a spinner/loading message
-4. After ~10 seconds, each model shows ✅ or ❌
-5. **Close the popup and reopen it** → results load instantly from cache (no API call)
-6. The hint says "Last checked: X min ago · Cached 24h" ✅
-7. After 24 hours, results expire and the next check re-pings the API
+1. Open the popup → click the **🔄 Refresh** button
+2. The button will spin while it fetches models from the Gemini API.
+3. **Close the popup and reopen it** → the models load instantly from local storage.
+4. The cache automatically expires after 24 hours to ensure your model list is always up to date.
 
 ---
 
@@ -566,9 +553,9 @@ exts/                                ← Root repo (clone this)
 - Make sure you clicked **Develop → Allow Unsigned Extensions** in Safari's menu bar
 - If Develop menu is missing: Safari → Settings → Advanced → check "Show Develop menu"
 
-### Latest model tier doesn't work
-- Check **🔍 Check My Available Models** — the 2.5 preview models may show ❌
-- Switch to **Flash** or **Auto** tier — those use stable, widely available models
+### Specific model doesn't work
+- If you manually selected a model like `gemini-2.5-pro` and it fails, it means your API key lacks access or quota for that specific model.
+- Switch the dropdown to **Auto (Best available)** — it will automatically hunt for a working model.
 
 ---
 

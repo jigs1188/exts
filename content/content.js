@@ -51,9 +51,34 @@
         UIObserver.showNotification('Optimizing prompt...', 'info');
         
         try {
-          const optimizedPrompt = await PromptOptimizer.optimize(originalPrompt);
-          PlatformDetector.setText(textarea, optimizedPrompt);
-          UIObserver.showNotification('Prompt enhanced with Alt+Shift+P', 'success');
+          const result = await PromptOptimizer.optimize(originalPrompt);
+          
+          const optimizedText = (typeof result === 'object') ? result.text : result;
+          const source        = (typeof result === 'object') ? result.source : 'template';
+          const apiError      = (typeof result === 'object') ? result.apiError : null;
+
+          if (!optimizedText || optimizedText === originalPrompt) {
+            UIObserver.showNotification('Prompt already well-structured', 'info');
+            return;
+          }
+
+          const success = PlatformDetector.setText(textarea, optimizedText);
+          
+          if (success) {
+            if (source === 'ai') {
+              UIObserver.showNotification('✨ Enhanced with Gemini AI! (Alt+Shift+P)', 'success');
+            } else if (apiError) {
+              let friendlyError = 'API Error';
+              if (apiError.includes('Quota')) friendlyError = 'API Quota Exceeded';
+              else if (apiError.includes('Invalid')) friendlyError = 'Invalid API Key';
+              else if (apiError.includes('Receiving end')) friendlyError = 'Extension Reloaded (Refresh Page)';
+              UIObserver.showNotification(`⚠️ ${friendlyError} — Used Backup Template!`, 'warning', 6000);
+            } else {
+              UIObserver.showNotification('📋 Enhanced with local template (Alt+Shift+P)', 'info');
+            }
+          } else {
+            UIObserver.showNotification('Failed to update the text field', 'error');
+          }
         } catch (err) {
           console.error(err);
           UIObserver.showNotification('Optimization failed', 'error');

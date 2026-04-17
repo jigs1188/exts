@@ -222,8 +222,12 @@ const UIObserver = {
           this.showNotification('✨ Enhanced with Gemini AI!', 'success');
         } else if (apiError) {
           // Used template but only because API failed — tell the user why
-          const shortErr = apiError.length > 60 ? apiError.substring(0, 57) + '...' : apiError;
-          this.showNotification(`📋 Template used — API error: ${shortErr}`, 'warning');
+          let friendlyError = 'API Error';
+          if (apiError.includes('Quota')) friendlyError = 'API Quota Exceeded';
+          else if (apiError.includes('Invalid')) friendlyError = 'Invalid API Key';
+          else if (apiError.includes('Receiving end')) friendlyError = 'Extension Reloaded (Refresh Page)';
+          
+          this.showNotification(`⚠️ ${friendlyError} — Used Backup Template!`, 'warning', 6000);
           console.error('[MetaPrompt] API error detail:', apiError);
         } else {
           this.showNotification('📋 Enhanced with local template (add API key for AI mode)', 'info');
@@ -248,7 +252,7 @@ const UIObserver = {
   },
 
 
-  showNotification(message, type = 'info') {
+  showNotification(message, type = 'info', duration = 3000) {
     const existingNotification = document.getElementById('metaprompt-notification');
     if (existingNotification) {
       existingNotification.remove();
@@ -301,7 +305,7 @@ const UIObserver = {
     setTimeout(() => {
       notification.style.animation = 'slideIn 0.3s ease reverse';
       setTimeout(() => notification.remove(), 300);
-    }, 3000);
+    }, duration);
   },
 
   destroy() {

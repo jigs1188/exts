@@ -12,7 +12,7 @@ const PromptOptimizer = {
       transform: (p) => `You are an expert Strategic Consultant and Product Manager.\n\nStrategy Task: ${p}\n\nObjective:\n- Analyze the business/security goal\n- Provide a robust, step-by-step plan\n- Address risks and mitigation strategies\n\nOutput format:\n1. Executive Summary\n2. Strategic Steps\n3. Risk Analysis\n4. Recommended Implementation path`
     },
     coding: {
-      pattern: /(write|create|build|code|implement|function|class|debug|fix|error|bug|script|program|algorithm)/i,
+      pattern: /(code|implement|function|class|debug|fix|error|bug|script|program|algorithm|api|repo|repository)/i,
       transform: (p) => {
         const lang = PromptOptimizer.detectLanguage(p);
         return `You are an expert software engineer specializing in ${lang || 'general software architecture'}.\n\nTask: ${p}\n\nRequirements:\n- Write clean, efficient, maintainable code\n- Follow best practices and design patterns\n- Include error handling and concise comments\n\nOutput format:\n1. Brief approach explanation\n2. Complete implementation\n3. Usage example`;

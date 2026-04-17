@@ -76,19 +76,15 @@ You get:       "Act as a Senior Python Game Developer with deep expertise
 
 ### Step 1 — Get the Code
 
-**Option A — Clone with Git:**
+**Option A — Direct ZIP Download (Easiest):**
+1. Download the extension: [**Download MetaPrompt (ZIP)**](https://github.com/jigs1188/exts/archive/refs/heads/main.zip)
+2. Extract the ZIP anywhere on your computer (e.g., `C:\MetaPrompt\` or `~/MetaPrompt/`)
+3. The extracted folder `exts-main` contains the extension files.
+
+**Option B — Clone with Git:**
 ```bash
-git clone https://github.com/YOUR_USERNAME/metaprompt.git
-cd metaprompt
+git clone https://github.com/jigs1188/exts.git
 ```
-
-**Option B — Download ZIP:**
-1. Click the green **`Code`** button at the top of this page
-2. Click **`Download ZIP`**
-3. Extract the ZIP anywhere on your computer (e.g. `C:\MetaPrompt\` or `~/MetaPrompt/`)
-
-> [!IMPORTANT]
-> The folder you need to load into the browser is **`metaprompt-extension`** (the subfolder), NOT the root repo folder.
 
 ### Step 2 — Load into Your Browser
 
@@ -112,8 +108,8 @@ See the full browser-specific guide below.
 1. Open a new tab and go to: **`chrome://extensions`**
 2. In the top-right corner, enable the **Developer mode** toggle
 3. Click **"Load unpacked"** (appears after enabling Developer mode)
-4. In the file picker, navigate to your cloned/extracted folder
-5. Select the **`metaprompt-extension`** folder (not the root) → click **Select Folder**
+4. In the file picker, navigate to where you extracted the ZIP (or cloned the repo)
+5. Select the **`exts-main`** (or `exts`) folder → click **Select Folder**
 6. MetaPrompt appears in your extensions list ✅
 7. Click the puzzle icon 🧩 in the toolbar → click the 📌 pin icon next to MetaPrompt
 
@@ -128,7 +124,7 @@ See the full browser-specific guide below.
 1. Open a new tab and go to: **`edge://extensions`**
 2. In the bottom-left sidebar, enable the **Developer mode** toggle
 3. Click **"Load unpacked"** in the top-left
-4. Navigate to your folder and select the **`metaprompt-extension`** subfolder
+4. Navigate to your extracted folder and select **`exts-main`** (or `exts`)
 5. Click **Select Folder** → MetaPrompt appears ✅
 6. Click the puzzle icon 🧩 in the toolbar → pin MetaPrompt
 
@@ -143,7 +139,7 @@ See the full browser-specific guide below.
 1. Open a new tab and go to: **`brave://extensions`**
 2. Enable **Developer mode** toggle (top-right)
 3. Click **"Load unpacked"**
-4. Select the **`metaprompt-extension`** folder
+4. Select the **`exts-main`** (or `exts`) folder
 5. Click **Select Folder** → MetaPrompt is loaded ✅
 
 > **Brave Shield note:** If the ✨ button doesn't appear on some sites, click the Brave Shield 🛡️ icon in the address bar and set "Shields" to **Down** for that site. MetaPrompt doesn't need this normally, but Brave's aggressive blocking occasionally affects injected UI elements.
@@ -158,7 +154,7 @@ See the full browser-specific guide below.
    *(Opera GX: `operagx://extensions`)*
 2. Enable **Developer mode** (top-right toggle)
 3. Click **"Load unpacked"**
-4. Select the **`metaprompt-extension`** folder → click OK ✅
+4. Select the **`exts-main`** (or `exts`) folder → click OK ✅
 
 ---
 
@@ -177,7 +173,7 @@ Firefox allows you to quickly load the extension folder just like Chrome using `
 2. You will see a page titled **"This Firefox"**
 3. Click the button **"Load Temporary Add-on..."**
 4. A file picker opens — navigate to where you cloned/extracted the repo
-5. Open the **`metaprompt-extension`** folder
+5. Open the **`exts-main`** (or `exts`) folder
 6. Click on the file **`manifest.json`** to select it *(the file, not the folder)*
 7. Click **Open**
 8. ✅ MetaPrompt appears in the list and is ready to use!
@@ -214,10 +210,10 @@ Safari requires converting the extension to a native Mac app. This is a one-time
 
 ```bash
 # Convert the extension to a Safari extension project
-xcrun safari-web-extension-converter /path/to/metaprompt-extension --project-location ~/Desktop
+xcrun safari-web-extension-converter /path/to/exts-main --project-location ~/Desktop
 
 # Example with actual path:
-xcrun safari-web-extension-converter ~/Downloads/metaprompt/metaprompt-extension --project-location ~/Desktop
+xcrun safari-web-extension-converter ~/Downloads/exts-main --project-location ~/Desktop
 ```
 
 Then:
@@ -497,14 +493,12 @@ PERSISTENCE
 ## 📁 Project Structure
 
 ```
-metaprompt/                          ← Root repo (clone this)
+exts/                                ← Root repo (clone this)
 │
 ├── README.md                        ← This file
 ├── .gitignore
 │
-└── metaprompt-extension/            ← ⬅ LOAD THIS FOLDER in your browser
-    │
-    ├── manifest.json                ← Extension config (MV3)
+├── manifest.json                    ← Extension config (MV3)
     ├── background.js                ← Service worker: Gemini API + keep-alive
     ├── LICENSE
     ├── README.md
@@ -565,8 +559,8 @@ metaprompt/                          ← Root repo (clone this)
 - This should be rare since we use dual keep-alive (alarm heartbeat + port connection)
 
 ### Firefox: Extension disappears after browser restart
-- Use `web-ext build` and install the `.xpi` file permanently (see Firefox section above)
-- Or enable `xpinstall.signatures.required = false` in `about:config`
+- This is normal if you used `about:debugging` (temporary install).
+- To keep it permanently, you must use Firefox Developer Edition, build an `.xpi` via `web-ext`, and disable extension signatures in `about:config`. For most users, reloading via `about:debugging` is recommended.
 
 ### Safari: Extension not showing in Safari settings
 - Make sure you clicked **Develop → Allow Unsigned Extensions** in Safari's menu bar
@@ -589,7 +583,7 @@ Pull requests are welcome! Areas especially needing help:
 **To contribute:**
 1. Fork the repo
 2. Create a branch: `git checkout -b feature/your-feature-name`
-3. Make your changes in `metaprompt-extension/`
+3. Make your changes in the codebase
 4. Test in at least Chrome and Firefox
 5. Submit a pull request
 
@@ -597,7 +591,7 @@ Pull requests are welcome! Areas especially needing help:
 
 ## 📄 License
 
-MIT License — see [LICENSE](metaprompt-extension/LICENSE) for details.
+MIT License — see [LICENSE](LICENSE) for details.
 
 Free to use, modify, fork, and distribute. No attribution required (but appreciated!).
 

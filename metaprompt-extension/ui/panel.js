@@ -1,188 +1,244 @@
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const DEFAULTS = { technique: 'auto', model: 'auto' };
+const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+const TIER_LABELS = { flash: 'Flash', pro: 'Pro', latest: 'Latest' };
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+
 document.addEventListener('DOMContentLoaded', () => {
-  loadStats();
   loadApiKey();
-  loadLicenseKey(); // New
-  setupEventListeners();
+  loadTechnique();
+  loadModel();
+  loadStats();
   setupApiKeyListeners();
-  setupLicenseListeners(); // New
+  setupTechniqueListeners();
+  setupModelListeners();
+  setupPlatformLinks();
 });
 
-function loadLicenseKey() {
-  chrome.storage.sync.get(['licenseKey'], (result) => {
-    if (result.licenseKey) {
-      document.getElementById('licenseKey').value = result.licenseKey;
-      // Trigger a silent check to update UI status
-      chrome.runtime.sendMessage({ action: 'VALIDATE_LICENSE_NOW' }, (res) => {
-         updateLicenseUI(res);
-      });
-    }
-  });
-}
-
-function setupLicenseListeners() {
-  const btn = document.getElementById('activateLicense');
-  const input = document.getElementById('licenseKey');
-
-  if (btn) {
-    btn.addEventListener('click', () => {
-      const key = input.value.trim();
-      if (!key) return showLicenseStatus('Enter a key', 'error');
-
-      btn.textContent = 'Verifying...';
-      btn.disabled = true;
-
-      // 1. Save Key
-      chrome.storage.sync.set({ licenseKey: key }, () => {
-        // 2. Validate with Background
-        chrome.runtime.sendMessage({ action: 'VALIDATE_LICENSE_NOW' }, (response) => {
-           btn.disabled = false;
-           btn.textContent = 'Activate Device';
-           updateLicenseUI(response);
-        });
-      });
-    });
-  }
-}
-
-function updateLicenseUI(status) {
-    if (!status) return;
-    if (status.valid) {
-        showLicenseStatus('✅ Device Activated', 'success');
-        document.getElementById('licenseKey').style.borderColor = '#48bb78';
-        document.getElementById('activation-section').style.borderColor = '#48bb78';
-        document.getElementById('activation-section').style.background = '#f0fff4';
-    } else {
-        showLicenseStatus('❌ ' + (status.reason || 'Invalid'), 'error');
-    }
-}
-
-function showLicenseStatus(msg, type) {
-    const el = document.getElementById('licenseStatus');
-    el.textContent = msg;
-    el.style.color = type === 'error' ? '#e53e3e' : '#38a169';
-}
+// ── API Key ───────────────────────────────────────────────────────────────────
 
 function loadApiKey() {
-  if (typeof chrome !== 'undefined' && chrome.storage) {
-    chrome.storage.sync.get(['geminiApiKey'], (result) => {
-      if (result.geminiApiKey) {
-        document.getElementById('apiKey').value = result.geminiApiKey;
-        showStatus('Key loaded', 'success');
-      }
-    });
-  }
+  if (!chrome?.storage) return;
+  chrome.storage.sync.get(['geminiApiKey'], (result) => {
+    if (result.geminiApiKey) {
+      document.getElementById('apiKey').value = result.geminiApiKey;
+      showStatus('✅ API Key loaded', 'success');
+    }
+  });
 }
 
 function setupApiKeyListeners() {
-  const saveBtn = document.getElementById('saveKey');
-  const input = document.getElementById('apiKey');
+  const saveBtn  = document.getElementById('saveKey');
+  const clearBtn = document.getElementById('clearKey');
+  const input    = document.getElementById('apiKey');
 
-  if (saveBtn && input) {
-    saveBtn.addEventListener('click', () => {
-      const key = input.value.trim();
-      if (!key) {
-        showStatus('Please enter a key', 'error');
-        return;
-      }
-
-      if (typeof chrome !== 'undefined' && chrome.storage) {
-        chrome.storage.sync.set({ geminiApiKey: key }, () => {
-          showStatus('API Key saved!', 'success');
-          // Clear visual input for security after a moment, or keep it masked
-          setTimeout(() => showStatus('', ''), 3000);
-        });
-      }
+  saveBtn?.addEventListener('click', () => {
+    const key = input.value.trim();
+    if (!key) { showStatus('⚠️ Please paste an API key first', 'error'); return; }
+    chrome.storage.sync.set({ geminiApiKey: key }, () => {
+      showStatus('✅ API Key saved!', 'success');
+      setTimeout(() => showStatus('', ''), 4000);
     });
-  }
+  });
+
+  clearBtn?.addEventListener('click', () => {
+    chrome.storage.sync.remove('geminiApiKey', () => {
+      document.getElementById('apiKey').value = '';
+      showStatus('🗑️ Key cleared', 'info');
+      setTimeout(() => showStatus('', ''), 3000);
+    });
+  });
 }
 
 function showStatus(msg, type) {
-  const status = document.getElementById('status');
-  if (status) {
-    status.textContent = msg;
-    status.style.color = type === 'error' ? '#e53e3e' : '#38a169';
+  const el = document.getElementById('status');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = { success: '#276749', error: '#c53030', info: '#718096' }[type] || '#718096';
+}
+
+// ── Technique Picker ──────────────────────────────────────────────────────────
+
+function loadTechnique() {
+  chrome.storage.sync.get(['selectedTechnique'], (result) => {
+    setActiveChip('techniqueGrid', result.selectedTechnique || DEFAULTS.technique);
+  });
+}
+
+function setupTechniqueListeners() {
+  document.getElementById('techniqueGrid')?.querySelectorAll('.technique-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const technique = btn.dataset.technique;
+      setActiveChip('techniqueGrid', technique);
+      chrome.storage.sync.set({ selectedTechnique: technique });
+    });
+  });
+}
+
+function setActiveChip(gridId, value) {
+  document.getElementById(gridId)?.querySelectorAll('[data-technique]').forEach(el => {
+    el.classList.toggle('active', el.dataset.technique === value);
+  });
+}
+
+// ── Model Picker & Live Fetching ─────────────────────────────────────────────
+
+async function loadModel() {
+  const stored = await new Promise(r => chrome.storage.sync.get(['selectedModel', 'geminiApiKey'], r));
+  const cached = await new Promise(r => chrome.storage.local.get(['cachedModels', 'modelsTimestamp'], r));
+
+  const select = document.getElementById('modelSelect');
+  if (!select) return;
+
+  // Restore previous selection if any
+  if (stored.selectedModel) {
+    // If the model isn't in the list yet, add it temporarily so the UI shows it correctly
+    if (!Array.from(select.options).some(o => o.value === stored.selectedModel)) {
+      const opt = document.createElement('option');
+      opt.value = stored.selectedModel;
+      opt.textContent = stored.selectedModel;
+      select.appendChild(opt);
+    }
+    select.value = stored.selectedModel;
+  }
+
+  // Load from cache or fetch live
+  if (cached.cachedModels && cached.modelsTimestamp && (Date.now() - cached.modelsTimestamp < CACHE_DURATION_MS)) {
+    populateModelSelect(cached.cachedModels, stored.selectedModel);
+  } else if (stored.geminiApiKey) {
+    fetchAndPopulateModels(stored.geminiApiKey, stored.selectedModel);
+  } else {
+    showModelStatus('⚠️ Enter an API key to load available models.', 'info');
   }
 }
+
+function setupModelListeners() {
+  const select = document.getElementById('modelSelect');
+  select?.addEventListener('change', (e) => {
+    chrome.storage.sync.set({ selectedModel: e.target.value });
+  });
+
+  const refreshBtn = document.getElementById('refreshModels');
+  refreshBtn?.addEventListener('click', async () => {
+    const stored = await new Promise(r => chrome.storage.sync.get(['geminiApiKey', 'selectedModel'], r));
+    if (!stored.geminiApiKey) {
+      showModelStatus('⚠️ Enter an API key first.', 'error');
+      return;
+    }
+    fetchAndPopulateModels(stored.geminiApiKey, stored.selectedModel, true);
+  });
+}
+
+async function fetchAndPopulateModels(apiKey, selectedModel, forceRefresh = false) {
+  const refreshBtn = document.getElementById('refreshModels');
+  if (refreshBtn) {
+    refreshBtn.classList.add('spinning');
+    refreshBtn.disabled = true;
+  }
+  
+  showModelStatus('Fetching models from Gemini...', 'info');
+
+  try {
+    const response = await sendMessage({ action: 'FETCH_MODELS', apiKey });
+    if (response?.success && response.data) {
+      chrome.storage.local.set({ cachedModels: response.data, modelsTimestamp: Date.now() });
+      populateModelSelect(response.data, selectedModel);
+      showModelStatus(`✅ Loaded ${response.data.length} models`, 'success');
+      setTimeout(() => showModelStatus('', ''), 3000);
+    } else {
+      showModelStatus(`❌ ${response?.error || 'Unknown error'}`, 'error');
+    }
+  } catch (e) {
+    showModelStatus(`❌ Failed to connect: ${e.message}`, 'error');
+  } finally {
+    if (refreshBtn) {
+      refreshBtn.classList.remove('spinning');
+      refreshBtn.disabled = false;
+    }
+  }
+}
+
+function populateModelSelect(models, selectedModel) {
+  const select = document.getElementById('modelSelect');
+  if (!select) return;
+
+  // Keep 'auto' option
+  select.innerHTML = '<option value="auto">Auto (Best available)</option>';
+
+  models.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.id;
+    opt.textContent = m.displayName || m.id;
+    opt.title = m.description || '';
+    select.appendChild(opt);
+  });
+
+  if (selectedModel && models.some(m => m.id === selectedModel)) {
+    select.value = selectedModel;
+  } else if (selectedModel && selectedModel !== 'auto') {
+    // Model not in list anymore (deprecated)
+    select.value = 'auto';
+    chrome.storage.sync.set({ selectedModel: 'auto' });
+  }
+}
+
+function showModelStatus(msg, type) {
+  const el = document.getElementById('modelStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = `model-status-msg ${type}`;
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
 
 function loadStats() {
-  if (typeof chrome !== 'undefined' && chrome.storage) {
-    chrome.storage.local.get(['enhanceCount', 'lastUsed'], (result) => {
-      if (result.enhanceCount) {
-        displayStats(result);
-      }
-    });
+  if (!chrome?.storage) return;
+  chrome.storage.local.get(['enhanceCount', 'lastUsed'], (result) => {
+    if (result.enhanceCount) renderStats(result);
+  });
+}
+
+function renderStats(stats) {
+  const el = document.getElementById('statsDisplay');
+  if (!el || !stats.enhanceCount) return;
+  el.innerHTML = `
+    <p>📈 <strong>Total Enhancements:</strong> ${stats.enhanceCount}</p>
+    ${stats.lastUsed ? `<p>🕐 Last used: ${new Date(stats.lastUsed).toLocaleString()}</p>` : ''}
+  `;
+}
+
+// ── Platform Links ────────────────────────────────────────────────────────────
+
+function setupPlatformLinks() {
+  const map = {
+    'platform-chatgpt': 'https://chatgpt.com',
+    'platform-gemini':  'https://gemini.google.com',
+    'platform-claude':  'https://claude.ai',
+  };
+  for (const [id, url] of Object.entries(map)) {
+    document.getElementById(id)?.addEventListener('click', () => chrome.tabs?.create({ url }));
   }
 }
 
-function displayStats(stats) {
-  const statsSection = document.querySelector('.stats');
-  if (!statsSection || !stats.enhanceCount) return;
+// ── Helper: send message to background ───────────────────────────────────────
 
-  const statsInfo = document.createElement('div');
-  statsInfo.style.cssText = `
-    margin-top: 12px;
-    padding: 12px;
-    background: white;
-    border-radius: 6px;
-    border: 1px solid #e2e8f0;
-  `;
-
-  statsInfo.innerHTML = `
-    <p style="font-size: 13px; color: #4a5568; margin-bottom: 4px;">
-      📈 <strong>Total Enhancements:</strong> ${stats.enhanceCount}
-    </p>
-    ${stats.lastUsed ? `
-      <p style="font-size: 12px; color: #718096;">
-        🕐 Last used: ${new Date(stats.lastUsed).toLocaleString()}
-      </p>
-    ` : ''}
-  `;
-
-  statsSection.appendChild(statsInfo);
-}
-
-function setupEventListeners() {
-  const platformElements = document.querySelectorAll('.platform');
-
-  platformElements.forEach(platform => {
-    platform.style.cursor = 'pointer';
-
-    platform.addEventListener('click', () => {
-      const platformName = platform.textContent.trim().toLowerCase();
-      let url = '';
-
-      switch(platformName) {
-        case 'chatgpt':
-          url = 'https://chat.openai.com';
-          break;
-        case 'gemini':
-          url = 'https://gemini.google.com';
-          break;
-        case 'claude':
-          url = 'https://claude.ai';
-          break;
-      }
-
-      if (url && typeof chrome !== 'undefined' && chrome.tabs) {
-        chrome.tabs.create({ url });
-      }
-    });
-
-    platform.addEventListener('mouseenter', () => {
-      platform.style.transform = 'scale(1.05)';
-      platform.style.transition = 'transform 0.2s ease';
-    });
-
-    platform.addEventListener('mouseleave', () => {
-      platform.style.transform = 'scale(1)';
+function sendMessage(msg) {
+  return new Promise((resolve, reject) => {
+    if (!chrome.runtime?.id) return reject(new Error('Extension context invalidated'));
+    const timer = setTimeout(() => reject(new Error('Request timed out')), 90000);
+    chrome.runtime.sendMessage(msg, (response) => {
+      clearTimeout(timer);
+      if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+      else resolve(response);
     });
   });
 }
 
-if (typeof chrome !== 'undefined' && chrome.runtime) {
-  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.type === 'statsUpdate') {
-      loadStats();
-    }
-  });
-}
+// ── Listen for stat updates ───────────────────────────────────────────────────
+
+chrome.runtime?.onMessage.addListener((message) => {
+  if (message.type === 'statsUpdate') loadStats();
+});

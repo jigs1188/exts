@@ -189,7 +189,6 @@ const UIObserver = {
     }
 
     const originalPrompt = PlatformDetector.getText(textarea);
-    
     if (!originalPrompt || originalPrompt.trim().length === 0) {
       this.showNotification('Please enter a prompt first', 'warning');
       return;
@@ -197,47 +196,57 @@ const UIObserver = {
 
     button.classList.add('processing');
     button.innerHTML = '⚡';
-
-    // Small delay to allow UI to update
     await new Promise(r => setTimeout(r, 100));
 
     try {
-      this.showNotification('Optimizing...', 'info');
-      
-      const optimizedPrompt = await PromptOptimizer.optimize(originalPrompt);
-      
-      if (!optimizedPrompt) {
-        throw new Error('Optimization returned empty result');
-      }
+      this.showNotification('Optimizing your prompt...', 'info');
 
-      if (optimizedPrompt === originalPrompt) {
-        this.showNotification('Prompt already optimized', 'info');
+      const result = await PromptOptimizer.optimize(originalPrompt);
+
+      // Unpack result — supports both old string format and new {text, source} format
+      const optimizedText = (typeof result === 'object') ? result.text : result;
+      const source        = (typeof result === 'object') ? result.source : 'template';
+      const apiError      = (typeof result === 'object') ? result.apiError : null;
+
+      if (!optimizedText) throw new Error('Optimization returned empty result');
+      if (optimizedText === originalPrompt) {
+        this.showNotification('Prompt already well-structured', 'info');
         button.innerHTML = '✨';
         return;
       }
 
-      const success = PlatformDetector.setText(textarea, optimizedPrompt);
+      const success = PlatformDetector.setText(textarea, optimizedText);
 
       if (success) {
-        this.showNotification('Prompt enhanced successfully!', 'success');
+        if (source === 'ai') {
+          this.showNotification('✨ Enhanced with Gemini AI!', 'success');
+        } else if (apiError) {
+          // Used template but only because API failed — tell the user why
+          const shortErr = apiError.length > 60 ? apiError.substring(0, 57) + '...' : apiError;
+          this.showNotification(`📋 Template used — API error: ${shortErr}`, 'warning');
+          console.error('[MetaPrompt] API error detail:', apiError);
+        } else {
+          this.showNotification('📋 Enhanced with local template (add API key for AI mode)', 'info');
+        }
         button.innerHTML = '✅';
       } else {
-        this.showNotification('Failed to update text', 'error');
+        this.showNotification('Failed to update the text field', 'error');
         button.innerHTML = '❌';
       }
+
     } catch (error) {
-      console.error('[MetaPrompt] Optimization error:', error);
-      // Show the actual error message if available
-      const errorMsg = error.message || error.toString();
-      this.showNotification(errorMsg.length < 50 ? errorMsg : 'Error optimizing prompt', 'error');
+      console.error('[MetaPrompt] Button click error:', error);
+      const msg = error.message || 'Unknown error';
+      this.showNotification(msg.length < 60 ? msg : 'Error optimizing prompt — check console (F12)', 'error');
       button.innerHTML = '❌';
     } finally {
       setTimeout(() => {
         button.classList.remove('processing');
         button.innerHTML = '✨';
-      }, 1500);
+      }, 1800);
     }
   },
+
 
   showNotification(message, type = 'info') {
     const existingNotification = document.getElementById('metaprompt-notification');

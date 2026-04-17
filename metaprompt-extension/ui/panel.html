@@ -1,144 +1,159 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MetaPrompt Settings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="panel.css">
 </head>
-
 <body>
   <div class="container">
+
+    <!-- Header -->
     <header>
       <div class="logo">
         <span class="icon">✨</span>
         <h1>MetaPrompt</h1>
       </div>
-      <p class="subtitle">AI Prompt Engineer & Optimizer</p>
+      <p class="subtitle">AI Prompt Engineer &amp; Optimizer</p>
+      <span class="badge">Open Source · Free Forever</span>
     </header>
 
     <main>
-      <section class="info-card">
-        <h2>🎯 How to Use</h2>
-        <ol>
-          <li>Navigate to ChatGPT, Gemini, or Claude</li>
-          <li>Type your prompt in the input field</li>
-          <li>Click the <strong>✨ floating button</strong> or press <kbd>Alt+Shift+P</kbd></li>
-          <li>Your prompt will be automatically enhanced!</li>
-        </ol>
-      </section>
 
-      <section class="info-card" id="activation-section" style="border: 2px solid #f6ad55; background: #fffaf0;">
-        <h2>🔐 Activation</h2>
-        <p style="font-size: 13px; color: #4a5568; margin-bottom: 12px;">Enter your <strong>Private License Key</strong>
-          to activate this device.</p>
-        <div class="input-group" style="display: flex; gap: 8px; flex-direction: column;">
-          <input type="text" id="licenseKey" placeholder="Paste License Key (UUID)"
-            style="padding: 8px; border: 1px solid #f6ad55; border-radius: 6px; width: 100%; box-sizing: border-box; font-family: monospace;">
-          <button id="activateLicense"
-            style="background: #ed8936; color: white; border: none; padding: 8px; border-radius: 6px; cursor: pointer; font-weight: bold;">Activate
-            Device</button>
-          <p id="licenseStatus" style="font-size: 12px; margin-top: 4px; font-weight: bold;"></p>
+      <!-- API Key -->
+      <section class="info-card api-section">
+        <h2>🔑 Gemini API Key <span class="optional-tag">Optional</span></h2>
+        <p class="helper-text">
+          Enables AI-powered optimization. Without it, smart local templates are used.
+          Get a free key at <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio →</a>
+        </p>
+        <div class="input-group">
+          <input type="password" id="apiKey" placeholder="Paste your Gemini API Key here" autocomplete="off">
+          <div class="button-row">
+            <button id="saveKey" class="btn-primary">💾 Save Key</button>
+            <button id="clearKey" class="btn-ghost">🗑️ Clear</button>
+          </div>
+          <p id="status" class="status-msg"></p>
+        </div>
+        <div class="tip-box">
+          🔒 Stored locally in your browser only. Never sent to any third-party server.
         </div>
       </section>
 
-      <section class="info-card">
-        <h2>🔑 API Configuration</h2>
-        <p style="font-size: 13px; color: #4a5568; margin-bottom: 12px;">Add your Gemini API Key to enable AI-powered
-          optimization. Get it free from <a href="https://aistudio.google.com/app/apikey" target="_blank"
-            style="color: #667eea;">Google AI Studio</a>.</p>
-        <div class="input-group" style="display: flex; gap: 8px; flex-direction: column;">
-          <input type="password" id="apiKey" placeholder="Paste Gemini API Key here"
-            style="padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px; width: 100%; box-sizing: border-box;">
-          <button id="saveKey"
-            style="background: #4caf50; color: white; border: none; padding: 8px; border-radius: 6px; cursor: pointer;">Save
-            Key</button>
-          <p id="status" style="font-size: 12px; margin-top: 4px; height: 16px;"></p>
+      <!-- Technique Picker -->
+      <section class="picker-section">
+        <h2>🧠 Prompt Technique</h2>
+        <p class="helper-text">How should the AI structure your enhanced prompt?</p>
+        <div class="technique-grid" id="techniqueGrid">
+
+          <button class="technique-chip" data-technique="auto" title="Gemini analyzes your prompt and picks the best technique automatically">
+            <span class="chip-icon">🤖</span>
+            <span class="chip-name">Auto</span>
+            <span class="chip-desc">AI picks best</span>
+          </button>
+
+          <button class="technique-chip" data-technique="persona" title="Derives the perfect expert role for your domain">
+            <span class="chip-icon">🎭</span>
+            <span class="chip-name">Expert Persona</span>
+            <span class="chip-desc">Domain expert role</span>
+          </button>
+
+          <button class="technique-chip" data-technique="cot" title="Forces step-by-step reasoning before answering — great for logic & math">
+            <span class="chip-icon">🧠</span>
+            <span class="chip-name">Chain of Thought</span>
+            <span class="chip-desc">Step-by-step logic</span>
+          </button>
+
+          <button class="technique-chip" data-technique="few_shot" title="Adds 2-3 examples before the task — great for format-specific output">
+            <span class="chip-icon">📋</span>
+            <span class="chip-name">Few-Shot</span>
+            <span class="chip-desc">With examples</span>
+          </button>
+
+          <button class="technique-chip" data-technique="zero_shot" title="Clean role + task + constraints + format — fast and direct">
+            <span class="chip-icon">⚡</span>
+            <span class="chip-name">Zero-Shot</span>
+            <span class="chip-desc">Direct &amp; structured</span>
+          </button>
+
+          <button class="technique-chip" data-technique="react" title="Reason → Act → Observe loop — great for research and multi-step tasks">
+            <span class="chip-icon">🔄</span>
+            <span class="chip-name">ReAct</span>
+            <span class="chip-desc">Reason + Act loop</span>
+          </button>
+
         </div>
       </section>
 
-      <section class="features">
-        <h2>✨ Features</h2>
-        <div class="feature-grid">
-          <div class="feature-item">
-            <span class="feature-icon">💻</span>
-            <h3>Coding Optimizer</h3>
-            <p>Enhances programming requests with best practices</p>
-          </div>
-          <div class="feature-item">
-            <span class="feature-icon">🐛</span>
-            <h3>Debug Helper</h3>
-            <p>Structures debugging queries effectively</p>
-          </div>
-          <div class="feature-item">
-            <span class="feature-icon">📚</span>
-            <h3>Explanation Mode</h3>
-            <p>Optimizes learning and explanation requests</p>
-          </div>
-          <div class="feature-item">
-            <span class="feature-icon">✍️</span>
-            <h3>Writing Assistant</h3>
-            <p>Enhances content writing prompts</p>
-          </div>
-          <div class="feature-item">
-            <span class="feature-icon">🔍</span>
-            <h3>Analysis Mode</h3>
-            <p>Structures analytical queries</p>
-          </div>
-          <div class="feature-item">
-            <span class="feature-icon">🎨</span>
-            <h3>General Optimizer</h3>
-            <p>Improves any type of prompt</p>
-          </div>
+      <!-- Model Picker -->
+      <section class="picker-section">
+        <h2>⚙️ AI Model</h2>
+        <p class="helper-text">Select the Gemini model to use for optimization.</p>
+        
+        <div class="model-selection-area">
+          <select id="modelSelect" class="model-select">
+            <option value="auto">Auto (Best available)</option>
+          </select>
+          <button id="refreshModels" class="btn-ghost btn-icon" title="Refresh available models">🔄</button>
+        </div>
+        <p id="modelStatus" class="model-status-msg"></p>
+        <div class="tip-box">
+          Models are loaded live from your API key. If empty, check your key.
         </div>
       </section>
 
+      <!-- Supported Platforms -->
       <section class="supported-platforms">
         <h2>🌐 Supported Platforms</h2>
         <div class="platforms">
-          <div class="platform">
+          <div class="platform" id="platform-chatgpt" title="Open ChatGPT">
             <span class="platform-icon">🤖</span>
             <span>ChatGPT</span>
           </div>
-          <div class="platform">
+          <div class="platform" id="platform-gemini" title="Open Gemini">
             <span class="platform-icon">💎</span>
             <span>Gemini</span>
           </div>
-          <div class="platform">
+          <div class="platform" id="platform-claude" title="Open Claude">
             <span class="platform-icon">🧠</span>
             <span>Claude</span>
           </div>
         </div>
       </section>
 
+      <!-- Shortcuts + Stats -->
       <section class="shortcuts">
-        <h2>⌨️ Keyboard Shortcuts</h2>
+        <h2>⌨️ Keyboard Shortcut</h2>
         <div class="shortcut">
-          <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>P</kbd>
-          <span>Enhance Prompt</span>
+          <div class="keys">
+            <kbd>Alt</kbd> <span class="plus">+</span> <kbd>Shift</kbd> <span class="plus">+</span> <kbd>P</kbd>
+          </div>
+          <span class="shortcut-label">Enhance current prompt</span>
         </div>
       </section>
 
       <section class="info-card stats">
-        <h2>📊 Key Benefits</h2>
+        <h2>🌟 Status</h2>
         <ul>
-          <li>✅ <strong>No API keys required</strong> - Works client-side only</li>
-          <li>✅ <strong>100% Free</strong> - No subscriptions or hidden costs</li>
-          <li>✅ <strong>Privacy First</strong> - No data sent to external servers</li>
-          <li>✅ <strong>Smart Detection</strong> - Automatically identifies prompt intent</li>
-          <li>✅ <strong>Cross-Browser</strong> - Works on Chrome, Edge, and Firefox</li>
+          <li>✅ <strong>100% Free &amp; Open Source</strong> — MIT licensed</li>
+          <li>✅ <strong>No Sign-up Required</strong> — load and go</li>
+          <li>✅ <strong>Works offline</strong> — local templates as fallback</li>
+          <li>✅ <strong>Privacy First</strong> — API key never leaves your browser</li>
         </ul>
+        <div id="statsDisplay"></div>
       </section>
+
     </main>
 
     <footer>
-      <p>MetaPrompt v1.0.0</p>
-      <p class="footer-note">Enhance your AI conversations with professional prompt engineering</p>
+      <p>MetaPrompt v2.1.0 · <a href="https://github.com/" target="_blank">GitHub</a> · MIT License</p>
+      <p class="footer-note">Built with ❤️ for the AI Community</p>
     </footer>
   </div>
 
   <script src="panel.js"></script>
 </body>
-
 </html>

@@ -1,243 +1,173 @@
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'OPTIMIZE_PROMPT') {
-    handleOptimization(request.prompt, request.apiKey, request.history)
-      .then(response => sendResponse({ success: true, data: response }))
-      .catch(error => sendResponse({ success: false, error: error.message }));
-    return true; // Will respond asynchronously
-  }
-});
+// MetaPrompt – Background Service Worker
 
-// Create an alarm to keep the service worker active/wake it up
-// Keep-Alive Connection Handler (The "Heartbeat")
+// ── Keep-Alive ────────────────────────────────────────────────────────────────
+function createKeepAlive() {
+  try { chrome.alarms.create('keepAlive', { periodInMinutes: 0.4 }); } catch (e) {}
+}
+createKeepAlive();
+chrome.alarms.onAlarm.addListener((a) => { if (a.name === 'keepAlive') {} });
+chrome.runtime.onInstalled.addListener(createKeepAlive);
+chrome.runtime.onStartup.addListener(createKeepAlive);
 chrome.runtime.onConnect.addListener((port) => {
-  if (port.name === 'keepAlive') {
-    // console.log('[MetaPrompt] Keep-alive port connected');
-    port.onDisconnect.addListener(() => {
-      // console.log('[MetaPrompt] Keep-alive port disconnected');
-    });
-  }
+  if (port.name === 'keepAlive') port.onDisconnect.addListener(() => {});
 });
 
-// --- LICENSING SYSTEM ---
-let LICENSE_STATUS = { valid: false, reason: 'Checking...' };
-const SERVER_URL = 'http://localhost:3000/api/validate'; // TODO: Change for prod
+// ── Auto-fallback chain (used when user picks "auto") ─────────────────────────
+const AUTO_FALLBACK = [
+  'gemini-3.1-flash-lite-preview',
+  'gemini-3-flash-preview',
+  'gemini-2.5-flash',
+  'gemini-2.5-pro',
+  'gemini-2.0-flash',
+  'gemini-flash-latest',
+  'gemini-1.5-flash',
+  'gemini-1.5-pro'
+];
 
-async function validateLicense() {
-  // 1. DEV MODE CHECK (Bypass for You)
-  if (chrome.management && chrome.management.getSelf) {
-      const self = await new Promise(r => chrome.management.getSelf(r));
-      if (self.installType === 'development') {
-          console.log('[MetaPrompt] DEV MODE DETECTED: Bypassing License Check 🔓');
-          LICENSE_STATUS = { valid: true, reason: 'Developer Override' };
-          return;
-      }
+// ── Message Handler ───────────────────────────────────────────────────────────
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  console.log('[MetaPrompt BG] Action:', request?.action);
+
+  if (request.action === 'OPTIMIZE_PROMPT') {
+    handleOptimization(request)
+      .then(data => sendResponse({ success: true, data }))
+      .catch(err  => sendResponse({ success: false, error: err.message }));
+    return true;
+  }
+  if (request.action === 'FETCH_MODELS') {
+    fetchModelsFromAPI(request.apiKey)
+      .then(data => sendResponse({ success: true, data }))
+      .catch(err  => sendResponse({ success: false, error: err.message }));
+    return true;
+  }
+  return false;
+});
+
+// ── Fetch real model list from Gemini API ─────────────────────────────────────
+async function fetchModelsFromAPI(apiKey) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}&pageSize=100`;
+  const res = await fetch(url);
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const msg = err.error?.message || `HTTP ${res.status}`;
+    if (res.status === 400 || res.status === 401) throw new Error('Invalid API key — please check your key at aistudio.google.com');
+    if (res.status === 403) throw new Error('API key does not have permission to list models');
+    if (res.status === 429) throw new Error('Quota exceeded — please wait 1 minute and try again');
+    throw new Error('Failed to load models: ' + msg);
   }
 
-  try {
-    const data = await chrome.storage.sync.get(['licenseKey']);
-    if (!data.licenseKey) {
-      LICENSE_STATUS = { valid: false, reason: 'License Key Missing' };
-      return;
-    }
+  const data = await res.json();
+  const models = (data.models || [])
+    .filter(m =>
+      m.supportedGenerationMethods?.includes('generateContent') &&
+      m.name.includes('gemini') &&
+      !m.name.includes('embedding') &&
+      !m.name.includes('aqa')
+    )
+    .map(m => ({
+      id:          m.name.replace('models/', ''),
+      displayName: m.displayName || m.name.replace('models/', ''),
+      description: (m.description || '').substring(0, 100),
+    }))
+    .sort((a, b) => b.id.localeCompare(a.id)); // newest first
 
-    // Generate Fingerprint (Available via utils/fingerprint.js)
-    if (typeof self.getDeviceFingerprint !== 'function') {
-        console.error('Fingerprint util not loaded');
-        return;
-    }
-    const fp = await self.getDeviceFingerprint();
-
-    // Call Server
-    const response = await fetch(SERVER_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ license_key: data.licenseKey, device_hash: fp })
-    });
-
-    const result = await response.json();
-    LICENSE_STATUS = result; // { valid: true/false, reason: ... }
-
-    if (result.valid) {
-        console.log('[MetaPrompt] License Validated:', result);
-    } else {
-        console.warn('[MetaPrompt] License Validation Failed:', result.reason);
-    }
-
-  } catch (e) {
-    console.error('[MetaPrompt] Validation Network Error:', e);
-    // Fail safe: If server is down, maybe allow? For now, BLOCK.
-    LICENSE_STATUS = { valid: false, reason: 'Validation Server Unreachable' };
-  }
+  if (models.length === 0) throw new Error('No usable Gemini models found for this API key');
+  return models;
 }
 
-// Check on Startup/Install
-chrome.runtime.onStartup.addListener(validateLicense);
-chrome.runtime.onInstalled.addListener(validateLicense);
+// ── Technique System Instructions ─────────────────────────────────────────────
+function buildSystemInstruction(technique, userPrompt, history) {
+  const ctx = history ? `### CONTEXT\n${history}\n\n` : '';
 
-// Re-check every 30 mins
-chrome.alarms.create('licenseCheck', { periodInMinutes: 30 });
-chrome.alarms.onAlarm.addListener((alarm) => {
-    if (alarm.name === 'licenseCheck') validateLicense();
-});
+  if (technique === 'cot') return `You are an expert Prompt Engineer. Rewrite the following prompt so the AI must think step-by-step before answering. Include numbered reasoning stages and ask the AI to verify before concluding.\nOUTPUT ONLY the rewritten prompt. No preamble.\n\n${ctx}USER PROMPT: "${userPrompt}"`;
 
-// Listener for License Update
-chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    if (msg.action === 'VALIDATE_LICENSE_NOW') {
-        validateLicense().then(() => sendResponse(LICENSE_STATUS));
-        return true;
-    }
-});
+  if (technique === 'few_shot') return `You are an expert Prompt Engineer specializing in Few-Shot prompting. Rewrite with 2-3 realistic domain-specific examples (Input→Output) before the actual task.\nOUTPUT ONLY the rewritten prompt.\n\n${ctx}USER PROMPT: "${userPrompt}"`;
 
-async function handleOptimization(userPrompt, apiKey, history = '') {
-  // BLOCK IF INVALID
-  if (!LICENSE_STATUS.valid) {
-      throw new Error(`Activation Required: ${LICENSE_STATUS.reason}`);
-  }
+  if (technique === 'zero_shot') return `You are an expert Prompt Engineer. Rewrite as a clean structured prompt with these sections:\n**Role:** [specific expert]\n**Task:** [exact task]\n**Constraints:** [rules]\n**Output Format:** [expected format]\nOUTPUT ONLY the structured prompt.\n\n${ctx}USER PROMPT: "${userPrompt}"`;
 
-  // List of models to try in order of preference (Speed/Cost -> Stability)
-  const models = [
-    'gemini-3-flash-preview', // User requested specific model
-    'gemini-2.0-flash-exp', 
-    'gemini-1.5-flash',
-    'gemini-1.5-flash-latest', 
-    'gemini-1.5-pro',
-    'gemini-pro' 
-  ];
+  if (technique === 'react') return `You are an expert Prompt Engineer. Rewrite using the ReAct pattern (Thought→Action→Observation loop, 2-4 cycles). OUTPUT ONLY the rewritten prompt.\n\n${ctx}USER PROMPT: "${userPrompt}"`;
 
-  const systemInstruction = `You are an elite Prompt Engineering AI.
-### YOUR GOAL
-Rewrite the user's raw prompt into a "God-Tier" optimized prompt for an LLM.
+  if (technique === 'persona') return buildPersonaInstruction(userPrompt, ctx);
 
-### CRITICAL RULES (Follow these strictly)
-1.  **NO PREAMBLE**: Did not say "Here is the prompt" or "To optimize this...". Start DIRECTLY with the prompt content.
-2.  **NO POSTSCRIPT**: Do not add explanations at the end.
-3.  **DIRECT ACTION**: The output must be the *exact text* the user will paste into ChatGPT.
+  // Default: auto
+  return `You are an elite Prompt Engineering AI. Analyze the user's prompt and silently choose the best technique (Expert Persona, Chain of Thought, Few-Shot, Zero-Shot, or ReAct), then rewrite it using that technique.
 
-### STRATEGY: "DYNAMIC EXPERT ADAPTATION"
-**Your Primary Task is to analyze the User's Request + History and *derive* the perfect expert persona.**
+STRICT RULES:
+1. Output ONLY the final rewritten prompt
+2. NO preamble like "Here is your prompt"
+3. Start directly with the rewritten content
+4. Preserve all specific details from the original
 
-1.  **ANALYZE THE DOMAIN**:
-    *   If user asks about *Python Data Analysis*, become a **"Senior Data Scientist"**.
-    *   If user asks about *Python Web Scraping*, become a **"Web Scraping Specialist"**.
-    *   If user asks about *Python Games*, become a **"Game Engine Architect"**.
-    *   *NEVER* default to a generic "Coder". You must match the specific niche of the query.
+${ctx}USER PROMPT: "${userPrompt}"`;
+}
 
-2.  **MAINTAIN CONTEXT**:
-    *   If the chat history shows we are building a *Finance App*, keep the "FinTech Developer" persona, even for generic questions like "fix this bug".
+function buildPersonaInstruction(userPrompt, ctx) {
+  return `You are an elite Prompt Engineering AI specializing in Expert Persona prompting.
+Derive the PERFECT specific expert for this domain and rewrite the prompt with: Persona + Requirements + Output Format.
+NEVER use generic roles like "expert assistant". Be specific (e.g. "Senior Python Game Developer with Pygame expertise").
+OUTPUT ONLY the rewritten prompt. No preamble.
 
-3.  **ADAPT FORMALITY**:
-    *   Coding -> Strict, Technical, Concise.
-    *   Ideation/Strategy -> Creative, Consultative, Detailed.
+${ctx}USER PROMPT: "${userPrompt}"`;
+}
 
-### FEW-SHOT EXAMPLES
+// ── Core Optimization ─────────────────────────────────────────────────────────
+async function handleOptimization({ prompt, apiKey, history = '', modelId = 'auto', technique = 'auto' }) {
+  const instruction = buildSystemInstruction(technique, prompt, history);
 
-**Input:** "make a snake game in python"
-**Reasoning:** User wants a game -> Persona: Game Dev.
-**Output:**
-Act as a **Senior Python Game Developer** with deep expertise in Pygame. 
-Create a highly optimized, object-oriented implementation of Snake.
-**Requirements:**
-- use OOP principles (Classes for Snake, Food, Game).
-- Include score tracking.
-
-**Input:** "plot this csv data in python"
-**Reasoning:** User wants data viz -> Persona: Data Scientist.
-**Output:**
-Act as a **Lead Data Scientist** specializing in Python Visualization (Matplotlib/Seaborn).
-Write a script to load the CSV and generate insightful visualizations.
-**Requirements:**
-- Handle missing values robustly.
-- Use Pandas for data manipulation.
-
-**Input:** "how should I sell my chrome extension privately"
-**Output:**
-Act as a Product Strategy Consultant.
-I have a Chrome Extension that I want to license to specific users (single PC/device) without publishing it publicly on the Web Store.
-**Goal:** Provide a secure distribution and licensing strategy.
-**Key Topics to Cover:**
-1. Method to lock the extension to a specific Device ID or PC.
-2. How to handle "off-store" distribution (ZIP vs. Private Hosting).
-3. Approaches for managing access keys or permissions.
-4. Pros/cons of this "Private Link" model vs. public listing.
-
-**Input:** "generate dummy user data in json"
-**Output:**
-Act as a Synthetic Data Generator. Generate a JSON dataset of 5 dummy users.
-**Schema Constraints:**
-- Root object must be an array \`users\`.
-- properties: \`id\` (UUID), \`name\` (Full Name), \`email\` (Valid format).
-- **Format:** Pure JSON. No Markdown ticks.
-
-**Input:** "explain quantum physics"
-**Output:**
-Act as a Quantum Physicist and Master Communicator (like Richard Feynman).
-Explain the fundamental principles of Quantum Mechanics to a curious high school student.
-**Key Topics:**
-1. Wave-Particle Duality (Use the Double-Slit analogy).
-2. Superposition (Schrödinger's Cat).
-3. Entanglement (Spooky action at a distance).
-**Constraint:** Avoid complex calculus. Focus on conceptual clarity.
-
-### CRITICAL RULES
-- **OUTPUT ONLY** the final optimized prompt. Do NOT explain your reasoning.
-- **NO PREAMBLE**. Start directly with the persona or instruction.
-- **PRESERVE** any specific data or code the user provided.
-
-${history ? `### CONTEXT (Past Chat History)\n${history}\n\n` : ''}### USER RAW PROMPT
-"${userPrompt}"`;
+  // If user picked a specific model → try only that one
+  // If "auto" → try fallback chain
+  const modelsToTry = (modelId && modelId !== 'auto') ? [modelId] : AUTO_FALLBACK;
 
   let lastError = null;
 
-  for (const model of models) {
+  for (const mid of modelsToTry) {
     try {
-      console.log(`[MetaPrompt] Attempting optimization with model: ${model}`);
-      const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+      console.log(`[MetaPrompt] Trying: ${mid} | technique: ${technique}`);
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${mid}:generateContent?key=${apiKey}`;
 
-      const response = await fetch(`${API_URL}?key=${apiKey}`, {
+      const res = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: systemInstruction
-            }]
-          }]
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: instruction }] }] })
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        const errorMessage = errorData.error?.message || response.statusText;
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        const errMsg  = errData.error?.message || res.statusText;
+
+        if (res.status === 401) throw new Error('Invalid API key — go to the popup and re-enter your Gemini API key.');
+        if (res.status === 403) throw new Error('API key lacks permission for model "' + mid + '". Try Auto mode or a different model.');
         
-        // If Model Not Found (404) or Invalid Argument (400 often for model mismatch), try next
-        if (response.status === 404 || response.status === 400) {
-           console.warn(`[MetaPrompt] Model ${model} failed (${response.status}): ${errorMessage}. Trying next...`);
-           lastError = new Error(`Model ${model} not found`);
-           continue; 
+        // 404 = Model doesn't exist. 429 = Quota exceeded.
+        // In both cases, we want to try the NEXT model in the fallback chain.
+        // Some models have 0 quota in certain countries or for certain accounts.
+        if (res.status === 404 || res.status === 429) {
+          console.warn(`[MetaPrompt] ${mid} failed (${res.status}) — trying next. Error:`, errMsg);
+          lastError = new Error(res.status === 429 ? 'Quota exceeded on all attempted models.' : `Model "${mid}" not available`);
+          continue;
         }
         
-        // For other errors (Quota 429, Key 403), fail immediately
-        throw new Error(errorMessage);
+        // Any other error (400 Bad Request, 500 Internal, etc) is a real failure
+        throw new Error(`API Error: ${errMsg || res.statusText}`);
       }
 
-      const data = await response.json();
-      if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-         throw new Error('Empty response from Gemini API');
-      }
-
+      const data = await res.json();
+      if (!data.candidates?.[0]?.content) throw new Error('Gemini returned an empty response');
+      console.log(`[MetaPrompt] ✅ Success with ${mid}`);
       return data.candidates[0].content.parts[0].text.trim();
 
     } catch (error) {
       lastError = error;
-      // If it's a "real" error (not just model not found), stop trying
-      if (error.message.includes('Quota') || error.message.includes('API key') || error.message.includes('permission')) {
-          throw error;
+      // If it's an explicit API Error, Invalid Key, etc., stop immediately.
+      // We ONLY want to continue the loop if the error was a 404 or 429 (caught above and continue is used)
+      // If it reaches this catch block, it means fetch failed (network) or throw was explicitly called.
+      // We should NOT continue on invalid keys or malformed requests.
+      if (!error.message.startsWith('Model "') && !error.message.includes('Quota exceeded')) {
+        throw error;
       }
     }
   }
 
-  // If we ran out of models
-  throw lastError || new Error('All Gemini models failed to respond.');
+  throw lastError || new Error('All models failed to respond.');
 }

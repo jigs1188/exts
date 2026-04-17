@@ -1,90 +1,127 @@
-# ✨ MetaPrompt – The AI Prompt Engineer
+# ✨ MetaPrompt — AI Prompt Engineer & Optimizer
 
-> **Transform vague thoughts into master-class prompts instantly.**
-
-MetaPrompt is a powerful browser extension that acts as your personal Prompt Engineer. It uses Google's advanced **Gemini AI models** to rewrite, structure, and optimize your prompts *before* you send them to ChatGPT, Claude, or Gemini.
-
-![MetaPrompt Demo](https://via.placeholder.com/800x400?text=MetaPrompt+in+Action)
-
-## 🚀 Why MetaPrompt?
-
-Most AI responses are only as good as the prompt you give them. MetaPrompt fixes this by automatically applying "Prompt Engineering" best practices:
-
-*   **⚡ AI-Powered Optimization**: Uses the latest **Gemini 1.5 Flash / Pro** models to rewrite your text.
-*   **🛡️ Robust Fallback System**: No internet? API Limit reached? No problem. It instantly switches to built-in "Expert Templates".
-*   **🌐 Cross-Platform**: Works seamlessly on **ChatGPT**, **Google Gemini**, and **Claude.ai**.
-*   **🔌 Smart Injection**: Intelligently detects input boxes and injects the improved prompt without breaking the page's React/JS event listeners.
+> Transform any vague idea into a master-class prompt. Free. Open source. No sign-up.
 
 ---
 
-## 📥 Installation
+## ⚡ Quick Install (2 Minutes)
 
-### 1. Chromium Browsers (Chrome, Brave, Edge, Opera)
-1.  Download or Clone this repository.
-2.  Open your extensions page:
-    *   **Chrome/Brave:** `chrome://extensions`
-    *   **Edge:** `edge://extensions`
-    *   **Opera:** `opera://extensions`
-3.  Enable **"Developer mode"** (usually a toggle in the top right).
-4.  Click **"Load unpacked"**.
-5.  Select the `metaprompt-extension` folder.
+### Chrome / Edge / Brave / Opera
+1. Open your extensions page:
+   - Chrome → `chrome://extensions`
+   - Edge → `edge://extensions`
+   - Brave → `brave://extensions`
+   - Opera → `opera://extensions`
+2. Enable **Developer Mode** (toggle, top-right)
+3. Click **Load unpacked**
+4. Select **this `metaprompt-extension` folder**
+5. Done! Pin the ✨ icon in your toolbar.
 
-### 2. Firefox
-1.  Open `about:debugging#/runtime/this-firefox`.
-2.  Click **"Load Temporary Add-on..."**.
-3.  Select the `manifest.json` file from the `metaprompt-extension` folder.
+### Firefox
+1. Go to `about:debugging#/runtime/this-firefox`
+2. Click **Load Temporary Add-on...**
+3. Select the **`manifest.json`** file inside this folder
 
-### 3. Safari (macOS)
-Safari requires converting the extension to a native Mac app.
-1.  Open Terminal.
-2.  Run: `xcrun safari-web-extension-converter /path/to/metaprompt-extension`
-3.  Open the generated Xcode project and Run it.
-*(Note: This requires Xcode installed).*
+> For a permanent Firefox install (survives restarts):
+> ```bash
+> npm install -g web-ext
+> web-ext build   # creates a .xpi in web-ext-artifacts/
+> ```
+> Then install the `.xpi` via `about:addons` → gear icon → Install Add-on From File.
+
+### Safari (macOS)
+```bash
+xcrun safari-web-extension-converter /path/to/metaprompt-extension
+```
+Open the generated Xcode project → Run → enable in Safari Settings → Extensions.
 
 ---
 
-## 🔑 Setup
+## 🔑 Optional: Gemini API Key (Free)
 
-MetaPrompt uses the **Google Gemini API** (which is currently free for most users) to power its intelligence.
+Without a key, smart local templates are used. For AI-powered optimization:
 
-1.  **Get your Key**: Go to [Google AI Studio](https://aistudio.google.com/app/apikey) and create a free API Key.
-2.  **Open Extension**: Click the **MetaPrompt Icon** <img src="icons/icon16.png" height="12"/> in your browser toolbar.
-3.  **Save Key**: Paste your key into the "API Key" field and click **Save**.
-
-> **Note:** Your API Key is stored locally in your browser's secure storage. It is never sent to any third-party server other than Google's official API.
+1. Get a free key at [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
+2. Click the ✨ toolbar icon → paste key → **Save Key**
+3. Optionally click **🔍 Check My Available Models** to see which models work
 
 ---
 
 ## 💡 How to Use
 
-1.  **Open your favorite AI chat** (e.g., [chatgpt.com](https://chatgpt.com)).
-2.  **Type a basic idea**:
-    > *make a snake game in python*
-3.  **Click the MetaPrompt Button** floating near the text box (or press the extension shortcut).
-4.  **Watch the Magic**:
-    The text will instantly transform into:
-    > *Act as a Senior Python Developer. Create a fully functional Snake game using the Pygame library. The code should be object-oriented, clean, and well-commented. Include a main game loop, score tracking, and smooth controls. Explain the key logic blocks briefly.*
+1. Go to **chatgpt.com**, **claude.ai**, or **gemini.google.com**
+2. Type any idea in the chat box
+3. Click the **✨ floating button** (bottom-right) OR press `Alt+Shift+P`
+4. Your prompt is instantly upgraded and ready to send!
 
 ---
 
-## 🛠️ Auto-Model Discovery
+## 🧠 Prompt Techniques
 
-MetaPrompt is "Future-Proof". It automatically scans for the best available model for your account, in this order:
-1.  `gemini-3-flash-preview` (If available)
-2.  `gemini-2.0-flash-exp` (Latest Experimental)
-3.  `gemini-1.5-flash` (Fast & Stable)
-4.  `gemini-1.5-pro` (High Reasoning)
+Choose in the popup how to structure your enhanced prompt:
 
-If one fails, it silently retries the next one until it works.
+| Technique | Best For |
+|-----------|---------|
+| 🤖 **Auto** | Gemini picks the best technique automatically (recommended) |
+| 🎭 **Expert Persona** | Domain-specific expert role derivation |
+| 🧠 **Chain of Thought** | Logic, math, step-by-step reasoning |
+| 📋 **Few-Shot** | Format-specific or creative structured output |
+| ⚡ **Zero-Shot** | Clean, fast, structured direct instructions |
+| 🔄 **ReAct** | Research and multi-step planning tasks |
+
+---
+
+## ⚙️ Model Tiers
+
+| Tier | Speed | Cost | Use When |
+|------|-------|------|----------|
+| 🔄 **Auto** | Fast | Low | Best default — tries best, falls back gracefully |
+| ⚡ **Flash** | Fastest | Lowest | Everyday use |
+| 🧠 **Pro** | Medium | Medium | Complex prompts needing deeper reasoning |
+| 🚀 **Latest** | Varies | Highest | Cutting-edge models (may need paid API plan) |
+
+Each tier has **ordered fallbacks** — if a model is unavailable, the next one is tried automatically.
+
+---
+
+## 🔄 Reloading After Code Changes
+
+**Changed `background.js` or `manifest.json`:**
+→ `chrome://extensions` → click 🔄 Reload on MetaPrompt → refresh the AI chat page
+
+**Changed `content/*.js` or `utils/*.js`:**
+→ Just refresh the AI chat page (Ctrl+R)
+
+**Changed `ui/panel.*`:**
+→ Just close and reopen the popup — no reload needed
+
+---
+
+## 🧪 Quick Test
+
+1. Visit [chatgpt.com](https://chatgpt.com)
+2. Type: `explain recursion`
+3. Click the ✨ purple floating button (bottom-right)
+4. You should see a structured, expert-level prompt appear ✅
+
+For the full test guide including all techniques and model tiers → see the **[root README](../README.md)**.
 
 ---
 
 ## ❓ Troubleshooting
 
-*   **"API connection failed..."**: Check your internet. If the API is down, the extension successfully used a local template instead.
-*   **"Receiving end does not exist"**: The background script went into sleep mode. Just click again, or reload the page. The extension has logic to wake itself up.
-*   **Text not showing up?**: We use a "Nuclear" injection method for stubborn sites. If it looks like it didn't type, try clicking inside the box or pressing a key.
+| Problem | Fix |
+|---------|-----|
+| ✨ button missing | Reload the page; check extension is enabled |
+| API error | Verify key at [AI Studio](https://aistudio.google.com/app/apikey); falls back to templates |
+| Text doesn't inject | Click inside the chat box first, then click ✨ |
+| "Receiving end" error | Click ✨ a second time — service worker reconnects |
+| Firefox disappears on restart | Use `web-ext build` for permanent install |
 
 ---
 
-**Built with ❤️ for the AI Community.**
+## 📄 License
+
+MIT — Free to use, fork, and modify.
+
+**Star ⭐ the repo if this helps you!**

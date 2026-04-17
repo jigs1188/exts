@@ -78,37 +78,49 @@ async function fetchModelsFromAPI(apiKey) {
 
 // ── Technique System Instructions ─────────────────────────────────────────────
 function buildSystemInstruction(technique, userPrompt, history) {
-  const ctx = history ? `### CONTEXT\n${history}\n\n` : '';
+  const ctx = history ? `### CONTEXT (Previous conversation history)\n${history}\n\n` : '';
 
-  if (technique === 'cot') return `You are an expert Prompt Engineer. Rewrite the following prompt so the AI must think step-by-step before answering. Include numbered reasoning stages and ask the AI to verify before concluding.\nOUTPUT ONLY the rewritten prompt. No preamble.\n\n${ctx}USER PROMPT: "${userPrompt}"`;
+  const strictRules = `CRITICAL INSTRUCTION: You are a Meta-Prompt Generator. 
+You must NEVER answer the user's prompt directly. NEVER write the story, NEVER write the code, and NEVER fulfill the user's request. 
+Your ONLY job is to write a BETTER PROMPT that the user will copy-paste into a different AI.
+- OUTPUT ONLY the final rewritten prompt.
+- NO preamble like "Here is your prompt".
+- DO NOT solve the user's problem.`;
 
-  if (technique === 'few_shot') return `You are an expert Prompt Engineer specializing in Few-Shot prompting. Rewrite with 2-3 realistic domain-specific examples (Input→Output) before the actual task.\nOUTPUT ONLY the rewritten prompt.\n\n${ctx}USER PROMPT: "${userPrompt}"`;
+  if (technique === 'cot') return `${strictRules}
+Technique: Rewrite the following prompt so the target AI must think step-by-step before answering. Include numbered reasoning stages.
+${ctx}=== USER'S RAW PROMPT ===
+${userPrompt}`;
 
-  if (technique === 'zero_shot') return `You are an expert Prompt Engineer. Rewrite as a clean structured prompt with these sections:\n**Role:** [specific expert]\n**Task:** [exact task]\n**Constraints:** [rules]\n**Output Format:** [expected format]\nOUTPUT ONLY the structured prompt.\n\n${ctx}USER PROMPT: "${userPrompt}"`;
+  if (technique === 'few_shot') return `${strictRules}
+Technique: Few-Shot prompting. Rewrite the prompt by adding 2-3 realistic domain-specific examples (Input→Output) before stating the actual task.
+${ctx}=== USER'S RAW PROMPT ===
+${userPrompt}`;
 
-  if (technique === 'react') return `You are an expert Prompt Engineer. Rewrite using the ReAct pattern (Thought→Action→Observation loop, 2-4 cycles). OUTPUT ONLY the rewritten prompt.\n\n${ctx}USER PROMPT: "${userPrompt}"`;
+  if (technique === 'zero_shot') return `${strictRules}
+Technique: Zero-Shot structured prompting. Rewrite as a clean structured prompt with: **Role:**, **Task:**, **Constraints:**, **Output Format:**.
+${ctx}=== USER'S RAW PROMPT ===
+${userPrompt}`;
 
-  if (technique === 'persona') return buildPersonaInstruction(userPrompt, ctx);
+  if (technique === 'react') return `${strictRules}
+Technique: ReAct pattern. Rewrite so the target AI uses a Thought→Action→Observation loop.
+${ctx}=== USER'S RAW PROMPT ===
+${userPrompt}`;
+
+  if (technique === 'persona') return buildPersonaInstruction(userPrompt, ctx, strictRules);
 
   // Default: auto
-  return `You are an elite Prompt Engineering AI. Analyze the user's prompt and silently choose the best technique (Expert Persona, Chain of Thought, Few-Shot, Zero-Shot, or ReAct), then rewrite it using that technique.
-
-STRICT RULES:
-1. Output ONLY the final rewritten prompt
-2. NO preamble like "Here is your prompt"
-3. Start directly with the rewritten content
-4. Preserve all specific details from the original
-
-${ctx}USER PROMPT: "${userPrompt}"`;
+  return `${strictRules}
+Technique: Analyze the user's raw prompt and silently choose the best technique (Expert Persona, Chain of Thought, Few-Shot, etc), then rewrite it.
+${ctx}=== USER'S RAW PROMPT ===
+${userPrompt}`;
 }
 
-function buildPersonaInstruction(userPrompt, ctx) {
-  return `You are an elite Prompt Engineering AI specializing in Expert Persona prompting.
-Derive the PERFECT specific expert for this domain and rewrite the prompt with: Persona + Requirements + Output Format.
-NEVER use generic roles like "expert assistant". Be specific (e.g. "Senior Python Game Developer with Pygame expertise").
-OUTPUT ONLY the rewritten prompt. No preamble.
-
-${ctx}USER PROMPT: "${userPrompt}"`;
+function buildPersonaInstruction(userPrompt, ctx, strictRules) {
+  return `${strictRules}
+Technique: Expert Persona. Derive the PERFECT specific expert for this domain (e.g., "Senior Python Game Developer"). Rewrite the prompt with: Persona + Requirements + Output Format.
+${ctx}=== USER'S RAW PROMPT ===
+${userPrompt}`;
 }
 
 // ── Core Optimization ─────────────────────────────────────────────────────────

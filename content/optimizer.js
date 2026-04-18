@@ -96,7 +96,8 @@ const PromptOptimizer = {
           history,
           apiKey: settings.apiKey,
           modelId: settings.model || 'auto',
-          technique: settings.technique || 'auto'
+          technique: settings.technique || 'auto',
+          mode: settings.mode || 'prompt'
         });
 
         console.log('[MetaPrompt] Background response:', response);
@@ -139,7 +140,7 @@ const PromptOptimizer = {
         resolve({}); 
         return; 
       }
-      chrome.storage.sync.get(['geminiApiKey', 'selectedModel', 'selectedTechnique'], (result) => {
+      chrome.storage.sync.get(['geminiApiKey', 'selectedModel', 'selectedTechnique', 'selectedMode'], (result) => {
         if (chrome.runtime.lastError) { 
           console.error('[MetaPrompt] Storage Error:', chrome.runtime.lastError.message);
           resolve({}); 
@@ -148,7 +149,8 @@ const PromptOptimizer = {
         resolve({
           apiKey:    result.geminiApiKey    || null,
           model:     result.selectedModel   || 'auto',
-          technique: result.selectedTechnique || 'auto'
+          technique: result.selectedTechnique || 'auto',
+          mode:      result.selectedMode    || 'prompt'
         });
       });
     });

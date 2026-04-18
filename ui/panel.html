@@ -43,46 +43,83 @@
         </div>
       </section>
 
+      <!-- External Sites -->
+      <section class="info-card sites-section">
+        <h2>🌍 External Sites</h2>
+        <p class="helper-text">Add custom domains (e.g., linkedin.com) where you want to use the Response Refiner.</p>
+        <div class="input-group">
+          <input type="text" id="customSite" placeholder="e.g. instagram.com" autocomplete="off">
+          <button id="addSite" class="btn-primary">➕ Add</button>
+        </div>
+        <div id="sitesList" class="sites-list"></div>
+      </section>
+
       <!-- Technique Picker -->
-      <section class="picker-section">
-        <h2>🧠 Prompt Technique</h2>
+      <section class="picker-section" id="techniqueSection">
+        <h2 id="techniqueTitle">🧠 Prompt Technique</h2>
         <p class="helper-text">How should the AI structure your enhanced prompt?</p>
         <div class="technique-grid" id="techniqueGrid">
 
-          <button class="technique-chip" data-technique="auto" title="Gemini analyzes your prompt and picks the best technique automatically">
+          <button class="technique-chip" data-technique="auto" data-mode="prompt" title="Gemini analyzes your prompt and picks the best technique automatically">
             <span class="chip-icon">🤖</span>
             <span class="chip-name">Auto</span>
             <span class="chip-desc">AI picks best</span>
           </button>
 
-          <button class="technique-chip" data-technique="persona" title="Derives the perfect expert role for your domain">
+          <button class="technique-chip" data-technique="persona" data-mode="prompt" title="Derives the perfect expert role for your domain">
             <span class="chip-icon">🎭</span>
             <span class="chip-name">Expert Persona</span>
             <span class="chip-desc">Domain expert role</span>
           </button>
 
-          <button class="technique-chip" data-technique="cot" title="Forces step-by-step reasoning before answering — great for logic & math">
+          <button class="technique-chip" data-technique="cot" data-mode="prompt" title="Forces step-by-step reasoning before answering — great for logic & math">
             <span class="chip-icon">🧠</span>
             <span class="chip-name">Chain of Thought</span>
             <span class="chip-desc">Step-by-step logic</span>
           </button>
 
-          <button class="technique-chip" data-technique="few_shot" title="Adds 2-3 examples before the task — great for format-specific output">
+          <button class="technique-chip" data-technique="few_shot" data-mode="prompt" title="Adds 2-3 examples before the task — great for format-specific output">
             <span class="chip-icon">📋</span>
             <span class="chip-name">Few-Shot</span>
             <span class="chip-desc">With examples</span>
           </button>
 
-          <button class="technique-chip" data-technique="zero_shot" title="Clean role + task + constraints + format — fast and direct">
+          <button class="technique-chip" data-technique="zero_shot" data-mode="prompt" title="Clean role + task + constraints + format — fast and direct">
             <span class="chip-icon">⚡</span>
             <span class="chip-name">Zero-Shot</span>
             <span class="chip-desc">Direct &amp; structured</span>
           </button>
 
-          <button class="technique-chip" data-technique="react" title="Reason → Act → Observe loop — great for research and multi-step tasks">
+          <button class="technique-chip" data-technique="react" data-mode="prompt" title="Reason → Act → Observe loop — great for research and multi-step tasks">
             <span class="chip-icon">🔄</span>
             <span class="chip-name">ReAct</span>
             <span class="chip-desc">Reason + Act loop</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Refinement Techniques -->
+      <section class="picker-section">
+        <h2>✨ Response Refiner</h2>
+        <p class="helper-text">Rewrite your existing text (perfect for emails or social media).</p>
+        <div class="technique-grid" id="refinerGrid">
+
+          <button class="technique-chip" data-technique="grammar" data-mode="refine" title="Fix all grammatical errors and typos">
+            <span class="chip-icon">✏️</span>
+            <span class="chip-name">Grammar Fix</span>
+            <span class="chip-desc">Correct & Polish</span>
+          </button>
+
+          <button class="technique-chip" data-technique="professional" data-mode="refine" title="Make the text sound formal and professional">
+            <span class="chip-icon">👔</span>
+            <span class="chip-name">Professional</span>
+            <span class="chip-desc">Formal tone</span>
+          </button>
+
+          <button class="technique-chip" data-technique="casual" data-mode="refine" title="Make the text sound friendly and natural">
+            <span class="chip-icon">👋</span>
+            <span class="chip-name">Casual</span>
+            <span class="chip-desc">Friendly tone</span>
           </button>
 
         </div>

@@ -12,11 +12,81 @@ document.addEventListener('DOMContentLoaded', () => {
   loadTechnique();
   loadModel();
   loadStats();
+  loadCustomSites();
+  detectActiveTabMode();
   setupApiKeyListeners();
   setupTechniqueListeners();
   setupModelListeners();
+  setupCustomSiteListeners();
   setupPlatformLinks();
 });
+
+// ── Custom Sites ──────────────────────────────────────────────────────────────
+
+let customSitesList = [];
+
+function loadCustomSites() {
+  chrome.storage.local.get(['customSites'], (result) => {
+    customSitesList = result.customSites || [];
+    renderCustomSites();
+  });
+}
+
+function renderCustomSites() {
+  const listEl = document.getElementById('sitesList');
+  if (!listEl) return;
+  listEl.innerHTML = '';
+  customSitesList.forEach(site => {
+    const el = document.createElement('div');
+    el.className = 'site-item';
+    el.innerHTML = `<span>${site}</span><button data-site="${site}" class="btn-ghost btn-icon">❌</button>`;
+    listEl.appendChild(el);
+  });
+
+  listEl.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const site = e.currentTarget.dataset.site;
+      customSitesList = customSitesList.filter(s => s !== site);
+      chrome.storage.local.set({ customSites: customSitesList }, renderCustomSites);
+    });
+  });
+}
+
+function setupCustomSiteListeners() {
+  const addBtn = document.getElementById('addSite');
+  const input = document.getElementById('customSite');
+  addBtn?.addEventListener('click', () => {
+    let site = input.value.trim().toLowerCase();
+    if (!site) return;
+    site = site.replace(/^https?:\/\//, '').split('/')[0]; // simple domain extraction
+    if (!customSitesList.includes(site)) {
+      customSitesList.push(site);
+      chrome.storage.local.set({ customSites: customSitesList }, () => {
+        input.value = '';
+        renderCustomSites();
+        
+        // Dynamically inject script into the active tab if it matches the new site
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          if (tabs[0] && tabs[0].url && tabs[0].url.includes(site)) {
+            chrome.scripting.executeScript({
+              target: { tabId: tabs[0].id },
+              files: ['utils/detectPlatform.js', 'content/optimizer.js', 'content/observer.js', 'content/content.js']
+            }).catch(e => console.warn('[MetaPrompt] Could not inject after adding site:', e));
+          }
+        });
+      });
+    }
+  });
+}
+
+// ── Mode Detection ────────────────────────────────────────────────────────────
+
+let currentMode = 'prompt';
+
+function detectActiveTabMode() {
+  // Mode detection is no longer needed since we show all techniques.
+  // The user can freely choose between Prompt and Refine techniques.
+}
 
 // ── API Key ───────────────────────────────────────────────────────────────────
 
@@ -69,17 +139,23 @@ function loadTechnique() {
 }
 
 function setupTechniqueListeners() {
-  document.getElementById('techniqueGrid')?.querySelectorAll('.technique-chip').forEach(btn => {
+  document.querySelectorAll('.technique-chip').forEach(btn => {
     btn.addEventListener('click', () => {
       const technique = btn.dataset.technique;
-      setActiveChip('techniqueGrid', technique);
-      chrome.storage.sync.set({ selectedTechnique: technique });
+      const mode = btn.dataset.mode || 'prompt';
+      
+      // Update UI for both grids
+      document.querySelectorAll('.technique-chip').forEach(el => {
+        el.classList.toggle('active', el.dataset.technique === technique);
+      });
+      
+      chrome.storage.sync.set({ selectedTechnique: technique, selectedMode: mode });
     });
   });
 }
 
-function setActiveChip(gridId, value) {
-  document.getElementById(gridId)?.querySelectorAll('[data-technique]').forEach(el => {
+function setActiveChip(unusedId, value) {
+  document.querySelectorAll('[data-technique]').forEach(el => {
     el.classList.toggle('active', el.dataset.technique === value);
   });
 }

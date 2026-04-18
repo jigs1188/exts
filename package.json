@@ -1,0 +1,24 @@
+{
+  "name": "exts",
+  "version": "1.0.0",
+  "description": "> **Turn any vague idea into a master-class prompt instantly. Free. Open source. No sign-up.**",
+  "main": "background.js",
+  "scripts": {
+    "build": "node build.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jigs1188/exts.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/jigs1188/exts/issues"
+  },
+  "homepage": "https://github.com/jigs1188/exts#readme",
+  "dependencies": {
+    "archiver": "^7.0.1"
+  }
+}

@@ -6,19 +6,20 @@
       return;
     }
 
-    const platform = PlatformDetector.detect();
+    chrome.storage.local.get(['customSites'], (result) => {
+      const customSites = result.customSites || [];
+      const platform = PlatformDetector.detect(customSites);
 
-    if (!platform) {
-      console.log('[MetaPrompt] Not on a supported platform');
-      return;
-    }
+      if (!platform) {
+        console.log('[MetaPrompt] Not on a supported platform');
+        return;
+      }
 
-    console.log(`[MetaPrompt] Detected platform: ${platform.name}`);
-
-    console.log(`[MetaPrompt] Detected platform: ${platform.name}`);
+      console.log(`[MetaPrompt] Detected platform: ${platform.name}`);
 
     // Initialize UI immediately so usage is visible
     UIObserver.init(platform);
+    PlatformDetector.initFocusTracking();
     initialized = true;
     setupKeyboardShortcut(platform);
     
@@ -34,6 +35,7 @@
     setTimeout(() => {
       clearInterval(waitForTextarea);
     }, 30000);
+    }); // End of chrome.storage.local.get
   }
 
   function setupKeyboardShortcut(platform) {
@@ -72,7 +74,8 @@
               if (apiError.includes('Quota')) friendlyError = 'API Quota Exceeded';
               else if (apiError.includes('Invalid')) friendlyError = 'Invalid API Key';
               else if (apiError.includes('Receiving end')) friendlyError = 'Extension Reloaded (Refresh Page)';
-              UIObserver.showNotification(`⚠️ ${friendlyError} — Used Backup Template!`, 'warning', 6000);
+              else friendlyError = apiError;
+              UIObserver.showNotification(`⚠️ ${friendlyError}`, 'warning', 6000);
             } else {
               UIObserver.showNotification('📋 Enhanced with local template (Alt+Shift+P)', 'info');
             }

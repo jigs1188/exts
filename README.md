@@ -39,36 +39,56 @@ MetaPrompt is a browser extension that acts as your personal Prompt Engineer. It
 
 ## 🧠 How It Works
 
-```
-You type:      "make a snake game in python"
-                        ↓
-MetaPrompt:    Detects intent → picks expert persona → adds structure
-                        ↓
-You get:       "Act as a Senior Python Game Developer with deep expertise
-                in Pygame. Create a fully OOP Snake game. Requirements:
-                Classes for Snake, Food, Game. Score tracking, progressive
-                speed, Game Over screen. Output: complete runnable code."
-```
+MetaPrompt works in two distinct modes depending on where you are:
 
-**Two optimization modes — always works:**
+### 1. 🚀 Optimizer Mode (For ChatGPT, Claude, Gemini)
+**Goal:** Turn vague ideas into master-class prompts.
+- **You type:** *"make a snake game in python"*
+- **MetaPrompt:** Picks an Expert Persona (Senior Dev) + Chain of Thought structure.
+- **Result:** You get a professional, structured prompt that gets perfect code on the first try.
 
-| Mode | When Used | Quality |
-|------|-----------|---------|
-| 🤖 **AI Mode** (Gemini API) | When you add a free API key | ⭐⭐⭐⭐⭐ |
-| 📋 **Local Templates** | No API key — works 100% offline | ⭐⭐⭐⭐ |
+### 2. ✨ Refiner Mode (For LinkedIn, Instagram, Gmail, etc.)
+**Goal:** Write better messages, DMs, and responses instantly.
+- **You type intent:** *"tell her about her beauty and eyes"*
+- **MetaPrompt:** Writes the *actual message* in a charming, casual tone.
+- **You type a draft:** *"hey i want to meeting tomorrow at 5"*
+- **MetaPrompt:** Polishes it into a professional invitation.
+
+---
+
+## 🎭 Multipurpose: Professional & Personal
+
+MetaPrompt is more than just a prompt tool — it's your personal AI ghostwriter.
+
+*   **💼 Professional (LinkedIn/Email):** Transform rough notes into articulate, high-level business communication. Perfect for cold DMs, follow-ups, and networking.
+*   **❤️ Personal & Casual (Instagram/DMs):** Express yourself better. Whether you want to be heartfelt, playful, flirty, or deeply romantic, MetaPrompt understands your intent and writes the actual message for you.
+*   **✏️ Grammar & Correctness:** Fix typos and punctuation while keeping your original voice perfectly intact.
+
+---
+
+| Feature | Optimizer Mode | Refiner Mode |
+|---------|----------------|--------------|
+| **Core Job** | Rewrites prompts *to* AI | Writes/Polishes messages *for* people |
+| **Best For** | Coding, Writing, Analysis | DMs, Emails, Social Media |
+| **Platforms** | ChatGPT, Gemini, Claude | LinkedIn, Instagram, WhatsApp, Gmail |
+| **Output** | "Act as a..." structure | Direct, ready-to-send text |
 
 ---
 
 ## ✨ Features
 
-- **🧠 6 Prompt Techniques** — Auto, Expert Persona, Chain of Thought, Few-Shot, Zero-Shot, ReAct
-- **⚙️ Dynamic Model Selection** — Choose exactly which model to use from a live dropdown
-- **🔍 Live Model Discovery** — Detects which Gemini models are available on your API key
-- **🛡️ Smart Fallback** — If a model is down or removed, silently tries the next working one
-- **📴 Works Offline** — Built-in smart templates need zero internet
-- **🔒 Privacy First** — Your API key never leaves your browser
-- **⌨️ Keyboard Shortcut** — `Alt + Shift + P` to enhance any prompt instantly
-- **♾️ Always Alive** — Dual keep-alive strategy prevents service worker sleep
+- **🎯 Dual-Engine Logic** — Automatically switches between Prompt Engineering and Message Ghostwriting.
+- **🧠 6 Prompt Techniques** — Auto, Expert Persona, Chain of Thought, Few-Shot, Zero-Shot, ReAct.
+- **🎨 3 Refining Tones** — Professional, Casual/Personal, and Grammar-Only.
+- **🔍 Intent Detection** — Understands if you are giving *instructions* ("tell her...") or a *draft* ("hey ur pretty") and responds accordingly.
+- **⚙️ Dynamic Model Selection** — Choose exactly which model to use from a live dropdown.
+- **🔍 Live Model Discovery** — Detects which Gemini models are available on your API key.
+- **🛡️ Smart Fallback** — If a model is down or removed, silently tries the next working one.
+- **📴 Works Offline** — Built-in smart templates need zero internet.
+- **🔒 Privacy First** — Your API key never leaves your browser.
+- **⌨️ Keyboard Shortcut** — `Alt + Shift + P` to enhance any prompt instantly.
+- **➕ External Site Support** — Use MetaPrompt on ANY website (Instagram, LinkedIn, etc.) by adding them in the settings.
+- **♾️ Always Alive** — Dual keep-alive strategy prevents service worker sleep.
 
 ---
 
@@ -160,23 +180,36 @@ See the full browser-specific guide below.
 
 ### 🦊 Mozilla Firefox
 
-Firefox allows you to quickly load the extension folder just like Chrome using `about:debugging`. 
+Because Firefox handles background scripts slightly differently than Chrome, we have a build script that automatically prepares the Firefox version for you.
 
-> ⚠️ **Note:** Firefox removes unpacked extensions when you restart the browser. For permanent install without restarting, you would need to build an `.xpi` file via `web-ext` and use Firefox Developer Edition, but the method below is the easiest for immediate use.
-
-**How to load the extension directly in Firefox:**
-
-1. Open Firefox, type this in the address bar and press **Enter**:
+**Step 1: Build for Firefox**
+1. Ensure you have [Node.js](https://nodejs.org/) installed.
+2. Open your terminal in the extension folder and run:
+   ```bash
+   npm install
+   npm run build
    ```
-   about:debugging#/runtime/this-firefox
+3. This creates a `dist/firefox` folder with the correct Firefox `manifest.json`.
+
+**Step 2: Load into Firefox (Temporary)**
+Firefox removes unpacked extensions when you restart the browser. For immediate testing:
+1. Open Firefox, go to: `about:debugging#/runtime/this-firefox`
+2. Click **"Load Temporary Add-on..."**
+3. Navigate to the `dist/firefox` folder you just built.
+4. Select the **`manifest.json`** file inside it and click **Open**.
+5. ✅ MetaPrompt is ready to use!
+
+**Step 3: Make it Permanent**
+To keep the extension permanently in Firefox without it disappearing on restart:
+1. You must sign the extension using Mozilla's `web-ext` tool.
+2. Install the tool globally: `npm install -g web-ext`
+3. Generate an API key from [Mozilla Add-ons (AMO)](https://addons.mozilla.org/en-US/developers/addon/api/key/)
+4. Run the sign command inside the `dist/firefox` folder:
+   ```bash
+   cd dist/firefox
+   web-ext sign --api-key=YOUR_API_KEY --api-secret=YOUR_API_SECRET
    ```
-2. You will see a page titled **"This Firefox"**
-3. Click the button **"Load Temporary Add-on..."**
-4. A file picker opens — navigate to where you cloned/extracted the repo
-5. Open the **`exts-main`** (or `exts`) folder
-6. Click on the file **`manifest.json`** to select it *(the file, not the folder)*
-7. Click **Open**
-8. ✅ MetaPrompt appears in the list and is ready to use!
+5. This generates a `.xpi` file in the `web-ext-artifacts` folder. You can drag and drop this `.xpi` file into Firefox for a permanent installation!
 
 ---
 
@@ -253,19 +286,47 @@ MetaPrompt works without an API key using built-in local templates. For AI-power
 
 ### Method 1 — Floating Button (Recommended)
 
-1. Open any supported AI chat site
-2. Type your raw idea in the input box: *`"build a todo app"`*
-3. Click the **✨ purple floating button** at the bottom-right corner of the page
-4. Your prompt is enhanced and automatically placed back in the input box
-5. Press Enter to send the improved prompt to the AI
+1. Open any supported AI chat site (ChatGPT, Gemini, Claude) or a [Custom External Site](#-adding-custom-external-sites).
+2. Type your raw idea or message in the input box.
+3. Click the **✨ purple floating button** at the bottom-right corner of the page.
+4. Your text is enhanced instantly!
 
-### Method 2 — Keyboard Shortcut
+### Method 2 — Highlight & Enhance (For DMs & Social Media)
 
-While the cursor is in the AI chat input box:
+If you are on a complex site like **LinkedIn DMs** or **Instagram**, use this much more reliable method:
+1. Type your message or instruction (e.g., *"tell her I love her eyes"*).
+2. **Highlight/Select the text** with your mouse.
+3. Click the **✨ floating button**.
+4. MetaPrompt will optimize *only* the selected part and replace it exactly where it was.
+
+### Method 3 — Keyboard Shortcut
+
+While the cursor is in any input box:
 - Press **`Alt + Shift + P`**
-- The prompt is optimized instantly
+- The text is optimized instantly.
 
-### Method 3 — Extension Popup
+---
+
+## ➕ Adding Custom External Sites
+
+MetaPrompt isn't just for AI platforms. You can use it as a professional ghostwriter on **LinkedIn, Instagram, Reddit, Gmail, or ANY other website.**
+
+### How to add a new site:
+
+1. Click the ✨ icon in your browser toolbar to open the **MetaPrompt Popup**.
+2. Find the **"External Sites (Optional)"** section.
+3. Type the domain name (e.g., `linkedin.com` or `instagram.com`).
+4. Click **➕ Add Site**.
+5. Refresh the website you just added — the ✨ floating button will now appear there!
+
+### Why use this?
+- **LinkedIn:** Turn a rough draft into a high-level professional message.
+- **Instagram/Social:** Craft charming, flirty, or heartfelt responses.
+- **Support/Emails:** Polish your tone to be perfectly professional or casual.
+- **Forums:** Structure long posts or technical questions automatically.
+
+---
+### Method 4 — Extension Popup (Quick Settings)
 
 1. Click the ✨ icon in the toolbar to open the popup
 2. Change your **Technique** or **Model Tier**

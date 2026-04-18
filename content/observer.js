@@ -169,6 +169,15 @@ const UIObserver = {
     tooltip.className = 'tooltip';
     tooltip.textContent = 'Enhance Prompt';
 
+    // Use mousedown to snapshot selection BEFORE click steals focus
+    button.addEventListener('mousedown', (e) => {
+      // Tell PlatformDetector to save the current selection RIGHT NOW
+      // before the browser shifts focus to this button
+      if (typeof PlatformDetector !== 'undefined') {
+        PlatformDetector._saveCurrentSelection();
+      }
+    });
+
     button.addEventListener('click', () => this.handleButtonClick(button));
 
     shadowRoot.appendChild(style);
@@ -188,7 +197,18 @@ const UIObserver = {
       return;
     }
 
-    const originalPrompt = PlatformDetector.getText(textarea);
+    // 1. Try full text first (standard behavior)
+    let originalPrompt = PlatformDetector.getText(textarea);
+    let isSelectionMode = false;
+
+    // 2. Backup plan: If field is empty or user highlighted something, check selection
+    const selectedText = PlatformDetector.getSelectedText();
+    if ((!originalPrompt || originalPrompt.trim().length === 0) && selectedText) {
+      originalPrompt = selectedText;
+      isSelectionMode = true;
+      console.log('[MetaPrompt] Using backup plan: Selection Mode');
+    }
+
     if (!originalPrompt || originalPrompt.trim().length === 0) {
       this.showNotification('Please enter a prompt first', 'warning');
       return;
@@ -203,19 +223,15 @@ const UIObserver = {
 
       const result = await PromptOptimizer.optimize(originalPrompt);
 
-      // Unpack result — supports both old string format and new {text, source} format
+      // Unpack result
       const optimizedText = (typeof result === 'object') ? result.text : result;
       const source        = (typeof result === 'object') ? result.source : 'template';
       const apiError      = (typeof result === 'object') ? result.apiError : null;
 
       if (!optimizedText) throw new Error('Optimization returned empty result');
-      if (optimizedText === originalPrompt) {
-        this.showNotification('Prompt already well-structured', 'info');
-        button.innerHTML = '✨';
-        return;
-      }
-
-      const success = PlatformDetector.setText(textarea, optimizedText);
+      
+      // Update the field — pass the isSelectionMode flag
+      const success = PlatformDetector.setText(textarea, optimizedText, isSelectionMode);
 
       if (success) {
         if (source === 'ai') {

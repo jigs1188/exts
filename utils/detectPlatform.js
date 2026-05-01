@@ -237,6 +237,8 @@ const PlatformDetector = {
       'input[type="text"]'
     ];
 
+    let visibleCandidate = null;
+
     for (const sel of generics) {
       try {
         const elements = document.querySelectorAll(sel);
@@ -247,12 +249,24 @@ const PlatformDetector = {
               console.log('[MetaPrompt] Textarea found via active generic:', sel);
               return el;
             }
-            // Otherwise, keep track of the first visible one we find
-            console.log('[MetaPrompt] Textarea found via visible generic:', sel);
-            return el; 
+            // Otherwise, check if it's actually visible on screen
+            const rect = el.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+              const style = window.getComputedStyle(el);
+              if (style.visibility !== 'hidden' && style.display !== 'none') {
+                if (!visibleCandidate) {
+                  visibleCandidate = el;
+                }
+              }
+            }
           }
         }
       } catch (e) {}
+    }
+
+    if (visibleCandidate) {
+      console.log('[MetaPrompt] Textarea found via visible generic');
+      return visibleCandidate;
     }
 
     console.warn('[MetaPrompt] No textarea found with any strategy');

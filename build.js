@@ -59,6 +59,16 @@ function copyFiles(targetDir, isFirefox) {
     manifest.background = {
       scripts: ["background.js"]
     };
+    // Firefox MV3 strictly requires a gecko ID and data_collection_permissions
+    manifest.browser_specific_settings = {
+      gecko: {
+        id: "metaprompt@yourdomain.com",
+        strict_min_version: "109.0",
+        data_collection_permissions: {
+          required: ["none"]
+        }
+      }
+    };
   } else {
     // Chrome uses service_worker
     manifest.background = {

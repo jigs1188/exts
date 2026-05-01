@@ -272,27 +272,32 @@ Then:
 
 ---
 
-## 🔑 Setup: Gemini API Key (Optional)
+---
 
-MetaPrompt works without an API key using built-in local templates. For AI-powered optimization:
+## 🔑 Setup: Gemini API Key (Highly Recommended)
 
-### Get a Free API Key
+While MetaPrompt includes high-quality built-in templates, **connecting a Gemini API Key is the best way to use the extension.** Using the API allows the AI to deeply understand your intent and generate much more sophisticated, creative, and professional responses.
 
-1. Go to **[Google AI Studio](https://aistudio.google.com/app/apikey)**
-2. Sign in with your Google account
-3. Click **"Create API Key"** → select any project (or create new)
-4. Copy the key (starts with `AIza...`)
+### 💰 Why use a Gemini API Key?
+- **It's 100% Free:** Google provides a massive free tier for individual developers and users.
+- **Huge Quota:** You get approximately **4,000+ free requests per day** across all Gemini models (Flash, Pro, etc.). This is more than enough for even the most active users.
+- **Superior Quality:** The API uses full LLM reasoning to rewrite your prompts and messages, making them far more effective than static templates.
 
-### Add Key to MetaPrompt
+### Step 1 — Get Your Free Key
+1. Go to the **[Google AI Studio API Key Page](https://aistudio.google.com/app/apikey)**.
+2. Sign in with any Google account.
+3. Click **"Create API Key"** (select a project or create a new one).
+4. Copy your unique key (it starts with `AIza...`).
 
-1. Click the **✨ MetaPrompt icon** in your browser toolbar
-2. Paste your key into the **"Gemini API Key"** field
-3. Click **💾 Save Key**
-4. Optionally click **🔍 Check My Available Models** to see which models work on your key
+### Step 2 — Add Key to MetaPrompt
+1. Click the **✨ MetaPrompt icon** in your browser toolbar.
+2. Paste your key into the **"Gemini API Key"** field and click **💾 Save Key**.
+3. **CRITICAL:** Click **🔍 Check My Available Models**. This will automatically find the best working model for your key and ensure everything is connected correctly.
 
-> 🔒 **Privacy:** Your key is stored in `chrome.storage.sync` (local browser storage). It is sent **only** to `generativelanguage.googleapis.com` (Google's official Gemini API). Never to any third-party server.
+> ⚠️ **Getting an "API Error"?** 
+> If you see an error notification while using the extension, it usually means your daily quota for a specific model is full. Simply open the extension popup and click **🔍 Check My Available Models** again. MetaPrompt will automatically switch you to the next best available free model (e.g., from Pro to Flash) so you can keep working!
 
-> 💡 **Free tier limits:** The free Gemini API tier has generous limits — typically 15 requests/minute and 1 million tokens/day with `gemini-1.5-flash`. MetaPrompt uses ~200-500 tokens per optimization.
+> 🔒 **Privacy:** Your key is stored safely in your own browser's local storage (`chrome.storage.sync`). It is only used to communicate directly with Google's official API.
 
 ---
 

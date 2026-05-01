@@ -15,7 +15,7 @@ MetaPrompt is a browser extension that acts as your personal Prompt Engineer. It
 ### 🦊 Firefox (Official Store)
 The easiest way to install MetaPrompt is directly from the Firefox Add-ons store. This ensures you get automatic updates and a permanent installation.
 
-**[👉 Install MetaPrompt for Firefox](YOUR_FIREFOX_STORE_URL_HERE)**
+**[👉 Install MetaPrompt for Firefox](https://addons.mozilla.org/en-US/firefox/addon/metaprompt-ai-prompt-engineer/)**
 
 ### 🌐 Other Browsers (Chrome, Edge, Brave)
 We are currently in the review process for the Chrome Web Store. For now, you can install MetaPrompt as an "unpacked" extension:
